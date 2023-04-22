@@ -43,7 +43,7 @@ git clone https://github.com/pedrolsantos/energytracker.git
 
 2. Go to folder:
 ```
-cd energy-tracker
+cd energyTracker
 ```
 
 2. Build the Docker container:
