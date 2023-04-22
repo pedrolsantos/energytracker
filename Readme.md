@@ -59,6 +59,7 @@ docker run -p 5000:5000 -p 8000:80 energyTracker
 4.Access the application in your browser at http://localhost:8000.
 
 5.Changes to the Frontend:
+
 To make changes to the frontend:
 
 - Install 'google-closure-compiler' (https://github.com/google/closure-compiler) to minimize and optimize the source code
@@ -86,6 +87,12 @@ Provides information for:
 - Real time energy consumption costs and quantities
 - Estimated energy consumption costs and quantities based on "Perfil C" of E-Redes: https://www.e-redes.pt/pt-pt/clientes-e-parceiros/comercializadores/perfis-de-consumo
 
+The consumption files from E-Redes must comply with the following rules:
+- Have all the information inside "Leituras" sheet
+- Have at least the columns:
+    - "Data" : consumption date (year/month/day)
+    - "Hora" : consumption time (hh:mm)
+    - "Consumo registado, Ativa" : energy consumption
 
 ### *"Config"*
 Provides a set of configuration parameters
