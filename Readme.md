@@ -38,7 +38,7 @@ For more details check requirements.txt file for the service backend
 1. Clone the repository to your local machine:
 
 ```
-git clone https://github.com/username/energy-tracker.git
+git clone https://github.com/pedrolsantos/energytracker.git
 ```
 
 2. Go to folder:
