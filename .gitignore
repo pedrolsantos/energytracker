@@ -1,6 +1,0 @@
-.DS_Store
-.vscode/
-__pycache__/
-Logs/
-docker_send_to_cloud.sh
-runDocker.sh

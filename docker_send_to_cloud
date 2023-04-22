@@ -1,3 +1,0 @@
-docker build -t omie-service-amd64 .
-docker tag omie-service-amd64 pedrolsantos/omie-service-amd64
-docker push pedrolsantos/omie-service-amd64
