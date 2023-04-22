@@ -227,7 +227,7 @@ class DataIngestion():
         }
         response = requests.get(url, params=params)
         if response.status_code == 200:
-            return response.json()
-        else:
             self.logger.error (f"Failed to fetch data from API. Status code: {response.status_code}")
-            raise Exception(f"Failed to fetch data from API. Status code: {response.status_code}")
+            return None
+        
+        return response.json()            

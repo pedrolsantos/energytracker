@@ -615,10 +615,10 @@ def get_eot_data ():
 
     # Call the function to get the EOT data
     response = data_ingest.get_EOT_Data (api_key=str_eotKey, results=1, channel='iap_diff')
-    if (response == -1):
+    if (response is None) or (response == -1):
         app.logger.error("Error calling EOT API")
         return jsonify({'error': 'Invalid Call to EOT'}), 400
-    
+
     date_power = response['channels'][0]['feeds'][0]['created_at']
     power = response['channels'][0]['feeds'][0]['value']
 
@@ -629,7 +629,7 @@ def get_eot_data ():
     count_periods = energy_cost.count_15min_periods_today()
 
     response = data_ingest.get_EOT_Data (api_key=str_eotKey, results=count_periods, channel='tiae')
-    if (response == -1):
+    if (response is None) or (response == -1):
         app.logger.error("Error calling EOT API")
         return jsonify({'error': 'Invalid Call to EOT'}), 400
     

@@ -26,9 +26,9 @@ It also ingest data from E-Redes energy consumption files to analyse the costs o
 
 Service Backend:
 - Docker (>= 20.10)
-- Python (>= 3.8)
+- Python (>= 3.80)
 
-Fronetend:
+Frontend:
 - Javascript + Bootstrap 5
 
 For more details check requirements.txt file for the service backend
