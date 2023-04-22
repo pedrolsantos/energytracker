@@ -2,7 +2,7 @@
 .vscode/
 __pycache__/
 Logs/
-docker_send_to_cloud
+docker_send_to_cloud.sh
 runDocker.sh
 omie-client/temp.js
 omie-client/test.py 
