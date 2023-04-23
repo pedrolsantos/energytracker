@@ -7,7 +7,7 @@ import json
 from logger_config import setup_logger
 
 #######   TEMPLATE DE CUSTOS DE ENERGIA   #######
-Energy_Cost_Templates = {
+Energy_Time_Cycle = {
     'Simples': [
         {'dst':1, 'dias':0, 'start': '00:00', 'end': '23:59', 'tar': -0.0958, 'periodo':'Cheio'}, # Seg a Sexta 
         {'dst':1, 'dias':1, 'start': '00:00', 'end': '23:59', 'tar': -0.0958, 'periodo':'Cheio'}, # Sábado
@@ -233,7 +233,7 @@ class EnergyCosts():
         date_category = self.get_day_category(date)
 
         tar = 0 # Default value
-        for period in Energy_Cost_Templates[self.energy_cost_option]:
+        for period in Energy_Time_Cycle[self.energy_cost_option]:
             if (period['dst'] == date_dst):
                 if (period['dias'] == date_category):
                     start_time = datetime.datetime.strptime(period['start'], '%H:%M').time()

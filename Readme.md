@@ -4,6 +4,7 @@ This repository contains an application for tracking energy prices of the OMIE (
 
 It also ingest data from E-Redes energy consumption files to analyse the costs of energy using real time and profiled consumption.
 
+A public and free to use site is available at http://energytracker.pt
 
 ## Table of Contents
 

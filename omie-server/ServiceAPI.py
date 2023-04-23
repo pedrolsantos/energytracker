@@ -15,7 +15,7 @@ from flask_cors import CORS
 
 from logger_config import setup_logger, setBasePath
 
-from Calculations import EnergyCosts, Energy_Cost_Templates, Energy_Suppliers
+from Calculations import EnergyCosts, Energy_Time_Cycle, Energy_Suppliers
 from Ingestion import DataIngestion
 
 ###################  FOLDERS  ############################
@@ -145,7 +145,7 @@ def upload_energy_file():
         return jsonify({'error': 'Invalid Energy Supplier'}), 400
 
     str_tarifario = request.args.get('tariff')
-    if (str_tarifario not in Energy_Cost_Templates):
+    if (str_tarifario not in Energy_Time_Cycle):
         app.logger.error('Invalid tariff')
         return jsonify({'error': 'Invalid tariff'}), 400
     
@@ -246,7 +246,7 @@ def get_price_for_date():
         return jsonify({'error': 'Invalid Energy Supplier'}), 400
 
     str_tarifario = request.args.get('tariff')
-    if (str_tarifario not in Energy_Cost_Templates):
+    if (str_tarifario not in Energy_Time_Cycle):
         app.logger.error ("Invalid tariff")
         return jsonify({'error': 'Invalid tariff'}), 400
     
@@ -297,7 +297,7 @@ def get_current_price():
         return jsonify({'error': 'Invalid Energy Supplier'}), 400
 
     str_tarifario = request.args.get('tariff')
-    if (str_tarifario not in Energy_Cost_Templates):
+    if (str_tarifario not in Energy_Time_Cycle):
         app.logger.error ("Invalid tariff")
         return jsonify({'error': 'Invalid tariff'}), 400
     
@@ -347,7 +347,7 @@ def getOMIEPricesForPeriod ():
         return jsonify({'error': 'Invalid Energy Supplier'}), 400
 
     str_tarifario = request.args.get('tariff')
-    if (str_tarifario not in Energy_Cost_Templates):
+    if (str_tarifario not in Energy_Time_Cycle):
         app.logger.error ("Invalid tariff")
         return jsonify({'error': 'Invalid tariff'}), 400
     
@@ -421,7 +421,7 @@ def estimate_profile_cost():
         return jsonify({'error': 'Invalid Energy Supplier'}), 400
 
     str_tarifario = request.args.get('tariff')
-    if (str_tarifario not in Energy_Cost_Templates):
+    if (str_tarifario not in Energy_Time_Cycle):
         app.logger.error ("Invalid tariff")
         return jsonify({'error': 'Invalid tariff'}), 400
     
@@ -500,7 +500,7 @@ def estimate_profile_cost_manual():
         return jsonify({'error': 'Invalid Energy Supplier'}), 400
 
     str_tarifario = request.args.get('tariff')
-    if (str_tarifario not in Energy_Cost_Templates):
+    if (str_tarifario not in Energy_Time_Cycle):
         app.logger.error("Invalid tariff")
         return jsonify({'error': 'Invalid tariff'}), 400
     
@@ -594,7 +594,7 @@ def get_eot_data ():
         return jsonify({'error': 'Invalid Energy Supplier'}), 400
 
     str_tarifario = request.args.get('tariff')
-    if (str_tarifario not in Energy_Cost_Templates):
+    if (str_tarifario not in Energy_Time_Cycle):
         app.logger.error("Invalid tariff")
         return jsonify({'error': 'Invalid tariff'}), 400
     
@@ -691,7 +691,7 @@ def getProfilePeriod():
         return jsonify({'error': 'Invalid Energy Supplier'}), 400
 
     str_tarifario = request.args.get('tariff')
-    if (str_tarifario not in Energy_Cost_Templates):
+    if (str_tarifario not in Energy_Time_Cycle):
         app.logger.error("Invalid tariff: " + str_tarifario)
         return jsonify({'error': 'Invalid tariff'}), 400
     
