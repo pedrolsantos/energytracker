@@ -421,7 +421,8 @@ class EnergyCosts():
 
         # Add columns for "Vazio", "Cheio" or "Ponta"
         luzboa_prices[['Vazio', 'Cheio', 'Ponta']] = luzboa_prices.apply(lambda row: self.add_columns_energy_by_period(row, column_name='price'), axis=1)
-
+        
+        self.logger.info ("Calculate LuzBoa Price Table for the period: {} - {}".format(start_date, end_date))
         return luzboa_prices
 
     def setLuzboaPrices (self, luzboa_price_table):

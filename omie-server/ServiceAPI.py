@@ -94,6 +94,16 @@ def send_file_and_delete(file_path, filename, folder=CONSUMOS_PATH):
 
         return send_from_directory(directory=folder, path=filename, as_attachment=True)
 
+def initialize_app():
+    setBasePath(BASE_PATH)
+    app.logger = setup_logger('ServiceAPI')
+    
+    data_ingest.download_OMIE_data()
+    
+    energy_cost = EnergyCosts('Tri-Horario-Semanal', 2023, 'luzboa-spot', 1 )
+    data_ingest.luzBoa_data = energy_cost.calc_luzboa_price_table(data_ingest.omie_data, data_ingest.profile_loss_data)
+
+
 ############## API REST ################################# 
 @app.route('/refreshOMIE', methods=['GET'])
 def refresh_omie_data():
@@ -103,7 +113,7 @@ def refresh_omie_data():
 
     try_download = request.args.get('try_download')
     if try_download or try_download == 'True':
-        app.logger.info ('Downloading OMIE data for today')
+        app.logger.info ('refresh_omie_data: Downloading OMIE data for today')
         data_ingest.download_OMIE_data()
     
     data_ingest.load_OMIE_data(data_ingest.omie_folder)
@@ -124,7 +134,7 @@ def download_omie_data():
 
     str_date = request.args.get('date')
     if not str_date:
-        app.logger.error('Invalid request data')
+        app.logger.error('download_omie_data: Invalid request data')
         return jsonify({'error': 'Invalid request data'}), 400
 
     date = datetime.datetime.strptime(str_date, '%Y-%m-%d')
@@ -146,32 +156,32 @@ def upload_energy_file():
 
     str_supplier = request.args.get('supplier')
     if (str_supplier not in Energy_Suppliers):
-        app.logger.error('Invalid Energy Supplier')
+        app.logger.error('upload_energy_file: Invalid Energy Supplier')
         return jsonify({'error': 'Invalid Energy Supplier'}), 400
 
     str_tarifario = request.args.get('tariff')
     if (str_tarifario not in Energy_Time_Cycle):
-        app.logger.error('Invalid tariff')
+        app.logger.error('upload_energy_file: Invalid tariff')
         return jsonify({'error': 'Invalid tariff'}), 400
     
     str_year = request.args.get('year')
     if (not str_year) or (not str_year.isdigit()) or (int(str_year) < 1900) or (int(str_year) > 2100) :
-        app.logger.error('Invalid year')
+        app.logger.error('upload_energy_file: Invalid year')
         return jsonify({'error': 'Invalid year'}), 400
 
     str_exportformat = request.args.get('format')
     if not str_exportformat or str_exportformat not in {'xls', 'csv', 'json'}:
-        app.logger.error('Invalid export format')
+        app.logger.error('upload_energy_file: Invalid export format')
         return jsonify({'error': 'Invalid export format'}), 400
 
     str_provider = request.args.get('provider')
     if not str_provider or str_provider not in {'E-Redes', 'EoT' }:
-        app.logger.error('Invalid provider')
+        app.logger.error('upload_energy_file: Invalid provider')
         return jsonify({'error': 'Invalid provider'}), 400
 
     arg_cycle_day = request.args.get('cycle_day')
     if (not arg_cycle_day) or (not arg_cycle_day.isdigit()) or (int(arg_cycle_day) < 0) or (int(arg_cycle_day) > 31) :
-        app.logger.error ("Invalid cycle_day")
+        app.logger.error ("upload_energy_file: Invalid cycle_day" + arg_cycle_day)
         return jsonify({'error': 'Invalid cycle_day'}), 400
     cycle_day = int(arg_cycle_day)
 
@@ -182,13 +192,13 @@ def upload_energy_file():
 
     # check if the post request has the file part
     if 'file' not in request.files:
-        app.logger.error('No file part')
+        app.logger.error('upload_energy_file: No file part')
         return jsonify({'error': 'No file part'}), 400
 
     file = request.files['file']
 
     if file.filename == '':
-        app.logger.error('No file selected')
+        app.logger.error('upload_energy_file: No file selected')
         return jsonify({'error': 'No file selected'}), 400
 
     if file:
@@ -254,27 +264,27 @@ def get_price_for_date():
 
     str_supplier = request.args.get('supplier')
     if (str_supplier not in Energy_Suppliers):
-        app.logger.error ("Invalid Energy Supplier")
+        app.logger.error ("get_price_for_date: Invalid Energy Supplier")
         return jsonify({'error': 'Invalid Energy Supplier'}), 400
 
     str_tarifario = request.args.get('tariff')
     if (str_tarifario not in Energy_Time_Cycle):
-        app.logger.error ("Invalid tariff")
+        app.logger.error ("get_price_for_date: Invalid tariff")
         return jsonify({'error': 'Invalid tariff'}), 400
     
     str_date = request.args.get('date')
     if not str_date:
-        app.logger.error ("Invalid request data")
+        app.logger.error ("get_price_for_date: Invalid request data")
         return jsonify({'error': 'Invalid request data'}), 400
     
     str_year = request.args.get('year')
     if (not str_year) or (not str_year.isdigit()) or (int(str_year) < 1900) or (int(str_year) > 2100) :
-        app.logger.error ("Invalid year")
+        app.logger.error ("get_price_for_date: Invalid year")
         return jsonify({'error': 'Invalid year'}), 400
 
     arg_cycle_day = request.args.get('cycle_day')
     if (not arg_cycle_day) or (not arg_cycle_day.isdigit()) or (int(arg_cycle_day) < 0) or (int(arg_cycle_day) > 31) :
-        app.logger.error ("Invalid cycle_day")
+        app.logger.error ("get_price_for_date: Invalid cycle_day" + arg_cycle_day)
         return jsonify({'error': 'Invalid cycle_day'}), 400
     cycle_day = int(arg_cycle_day)
 
@@ -315,22 +325,22 @@ def get_current_price():
 
     str_supplier = request.args.get('supplier')
     if (str_supplier not in Energy_Suppliers):
-        app.logger.error ("Invalid Energy Supplier")
+        app.logger.error ("get_current_price: Invalid Energy Supplier")
         return jsonify({'error': 'Invalid Energy Supplier'}), 400
 
     str_tarifario = request.args.get('tariff')
     if (str_tarifario not in Energy_Time_Cycle):
-        app.logger.error ("Invalid tariff")
+        app.logger.error ("get_current_price: Invalid tariff")
         return jsonify({'error': 'Invalid tariff'}), 400
     
     str_year = request.args.get('year')
     if (not str_year) or (not str_year.isdigit()) or (int(str_year) < 1900) or (int(str_year) > 2100) :
-        app.logger.error ("Invalid year")
+        app.logger.error ("get_current_price: Invalid year")
         return jsonify({'error': 'Invalid year'}), 400
 
     arg_cycle_day = request.args.get('cycle_day')
     if (not arg_cycle_day) or (not arg_cycle_day.isdigit()) or (int(arg_cycle_day) < 0) or (int(arg_cycle_day) > 31) :
-        app.logger.error ("Invalid cycle_day")
+        app.logger.error ("get_current_price: Invalid cycle_day" + str(arg_cycle_day))
         return jsonify({'error': 'Invalid cycle_day'}), 400
     cycle_day = int(arg_cycle_day)
 
@@ -381,22 +391,22 @@ def getOMIEPricesForPeriod ():
 
     str_supplier = request.args.get('supplier')
     if (str_supplier not in Energy_Suppliers):
-        app.logger.error ("Invalid Energy Supplier")
+        app.logger.error ("getOMIEPricesForPeriod: Invalid Energy Supplier")
         return jsonify({'error': 'Invalid Energy Supplier'}), 400
 
     str_tarifario = request.args.get('tariff')
     if (str_tarifario not in Energy_Time_Cycle):
-        app.logger.error ("Invalid tariff")
+        app.logger.error ("getOMIEPricesForPeriod: Invalid tariff")
         return jsonify({'error': 'Invalid tariff'}), 400
     
     str_year = request.args.get('year')
     if (not str_year) or (not str_year.isdigit()) or (int(str_year) < 1900) or (int(str_year) > 2100) :
-        app.logger.error ("Invalid year")
+        app.logger.error ("getOMIEPricesForPeriod: Invalid year")
         return jsonify({'error': 'Invalid year'}), 400
     
     arg_cycle_day = request.args.get('cycle_day')
     if (not arg_cycle_day) or (not arg_cycle_day.isdigit()) or (int(arg_cycle_day) < 0) or (int(arg_cycle_day) > 31) :
-        app.logger.error ("Invalid cycle_day")
+        app.logger.error ("getOMIEPricesForPeriod: Invalid cycle_day" + arg_cycle_day)
         return jsonify({'error': 'Invalid cycle_day'}), 400
     cycle_day = int(arg_cycle_day)    
 
@@ -466,22 +476,22 @@ def estimate_profile_cost():
 
     str_supplier = request.args.get('supplier')
     if (str_supplier not in Energy_Suppliers):
-        app.logger.error ("Invalid Energy Supplier")
+        app.logger.error ("estimate_profile_cost: Invalid Energy Supplier")
         return jsonify({'error': 'Invalid Energy Supplier'}), 400
 
     str_tarifario = request.args.get('tariff')
     if (str_tarifario not in Energy_Time_Cycle):
-        app.logger.error ("Invalid tariff")
+        app.logger.error ("estimate_profile_cost: Invalid tariff")
         return jsonify({'error': 'Invalid tariff'}), 400
     
     str_year = request.args.get('year')
     if (not str_year) or (not str_year.isdigit()) or (int(str_year) < 1900) or (int(str_year) > 2100) :
-        app.logger.error ("Invalid year")
+        app.logger.error ("estimate_profile_cost: Invalid year")
         return jsonify({'error': 'Invalid year'}), 400
 
     arg_cycle_day = request.args.get('cycle_day')
     if (not arg_cycle_day) or (not arg_cycle_day.isdigit()) or (int(arg_cycle_day) < 0) or (int(arg_cycle_day) > 31) :
-        app.logger.error ("Invalid cycle_day")
+        app.logger.error ("estimate_profile_cost: Invalid cycle_day" + arg_cycle_day)
         return jsonify({'error': 'Invalid cycle_day'}), 400
     cycle_day = int(arg_cycle_day)
 
@@ -556,22 +566,22 @@ def estimate_profile_cost_manual():
 
     str_supplier = request.args.get('supplier')
     if (str_supplier not in Energy_Suppliers):
-        app.logger.error("Invalid Energy Supplier")
+        app.logger.error("estimate_profile_cost_manual: Invalid Energy Supplier")
         return jsonify({'error': 'Invalid Energy Supplier'}), 400
 
     str_tarifario = request.args.get('tariff')
     if (str_tarifario not in Energy_Time_Cycle):
-        app.logger.error("Invalid tariff")
+        app.logger.error("estimate_profile_cost_manual: Invalid tariff")
         return jsonify({'error': 'Invalid tariff'}), 400
     
     str_year = request.args.get('year')
     if (not str_year) or (not str_year.isdigit()) or (int(str_year) < 1900) or (int(str_year) > 2100) :
-        app.logger.error("Invalid year")
+        app.logger.error("estimate_profile_cost_manual: Invalid year")
         return jsonify({'error': 'Invalid year'}), 400
     
     arg_cycle_day = request.args.get('cycle_day')
     if (not arg_cycle_day) or (not arg_cycle_day.isdigit()) or (int(arg_cycle_day) < 0) or (int(arg_cycle_day) > 31) :
-        app.logger.error ("Invalid cycle_day")
+        app.logger.error ("estimate_profile_cost_manual: Invalid cycle_day" + arg_cycle_day)
         return jsonify({'error': 'Invalid cycle_day'}), 400
     cycle_day = int(arg_cycle_day)    
 
@@ -657,31 +667,31 @@ def estimate_profile_cost_manual():
 def get_eot_data ():
     # test with:
     # curl -X GET "http://127.0.0.1:5000/getEOTData?tariff=Tri-Horario-Semanal&year=2023?key=XXXXXXXXX&cycle_day=1&supplier=coopernico-base"
-    app.logger.info ("Service: getEOTData")
+    app.logger.info ("Start Service: getEOTData")
 
     str_supplier = request.args.get('supplier')
     if (str_supplier not in Energy_Suppliers):
-        app.logger.error("Invalid Energy Supplier")
+        app.logger.error("get_eot_data: Invalid Energy Supplier")
         return jsonify({'error': 'Invalid Energy Supplier'}), 400
 
     str_tarifario = request.args.get('tariff')
     if (str_tarifario not in Energy_Time_Cycle):
-        app.logger.error("Invalid tariff")
+        app.logger.error("get_eot_data: Invalid tariff")
         return jsonify({'error': 'Invalid tariff'}), 400
     
     str_year = request.args.get('year')
     if (not str_year) or (not str_year.isdigit()) or (int(str_year) < 1900) or (int(str_year) > 2100) :
-        app.logger.error("Invalid year")
+        app.logger.error("get_eot_data: Invalid year")
         return jsonify({'error': 'Invalid year'}), 400
 
     str_eotKey = request.args.get('key')
     if (not str_eotKey) or (len(str_eotKey) != 16) or (str_eotKey == 'XXXXXXXXX'):
-        app.logger.error("Invalid EOT Key")
+        app.logger.error("get_eot_data: Invalid EOT Key")
         return jsonify({'error': 'Invalid Key'}), 400
 
     arg_cycle_day = request.args.get('cycle_day')
     if (not arg_cycle_day) or (not arg_cycle_day.isdigit()) or (int(arg_cycle_day) < 0) or (int(arg_cycle_day) > 31) :
-        app.logger.error ("Invalid cycle_day")
+        app.logger.error ("get_eot_data: Invalid cycle_day")
         return jsonify({'error': 'Invalid cycle_day'}), 400
     cycle_day = int(arg_cycle_day)
 
@@ -770,17 +780,17 @@ def getProfilePeriod():
 
     str_tarifario = request.args.get('tariff')
     if (str_tarifario not in Energy_Time_Cycle):
-        app.logger.error("Invalid tariff: " + str_tarifario)
+        app.logger.error("getProfilePeriod: Invalid tariff: " + str_tarifario)
         return jsonify({'error': 'Invalid tariff'}), 400
     
     str_year = request.args.get('year')
     if (not str_year) or (not str_year.isdigit()) or (int(str_year) < 1900) or (int(str_year) > 2100) :
-        app.logger.error("Invalid year: " + str_year)
+        app.logger.error("getProfilePeriod: Invalid year: " + str_year)
         return jsonify({'error': 'Invalid year'}), 400
     
     arg_cycle_day = request.args.get('cycle_day')
     if (not arg_cycle_day) or (not arg_cycle_day.isdigit()) or (int(arg_cycle_day) < 0) or (int(arg_cycle_day) > 31) :
-        app.logger.error ("Invalid cycle_day")
+        app.logger.error ("getProfilePeriod: Invalid cycle_day" + arg_cycle_day)
         return jsonify({'error': 'Invalid cycle_day'}), 400
     cycle_day = int(arg_cycle_day)    
 
@@ -788,18 +798,18 @@ def getProfilePeriod():
     end_date = request.args.get('end_date')
 
     if not start_date or not end_date:
-        app.logger.error("Invalid request data")
+        app.logger.error("getProfilePeriod: Invalid request data")
         return jsonify({'error': 'Invalid request data'}), 400
 
     try:
         start_date = datetime.datetime.strptime(start_date, '%Y-%m-%d-%H:%M')
         end_date = datetime.datetime.strptime(end_date, '%Y-%m-%d-%H:%M')
     except ValueError:
-        app.logger.error("Invalid date format")
+        app.logger.error("getProfilePeriod: Invalid date format")
         return jsonify({'error': 'Invalid date format'}), 400
     
     if start_date > end_date:
-        app.logger.error("Invalid date range")
+        app.logger.error("getProfilePeriod: Invalid date range")
         return jsonify({'error': 'Invalid date range'}), 400
 
     # Initialize the EnergyCosts class
@@ -826,20 +836,11 @@ EREDES_PATH = os.path.join(BASE_PATH, 'ERedes_profiles/')
 CONSUMO_PROFILE_FILE    = os.path.join(EREDES_PATH, 'E-REDES_Perfil_Consumo_2023_mod.xlsx')
 LOSS_PROFILE_FILE       = os.path.join(EREDES_PATH, 'E-REDES_Perfil_Perdas_2023_mod.xlsx')
 
+
 data_ingest = DataIngestion(OMIE_PATH, CONSUMO_PROFILE_FILE, LOSS_PROFILE_FILE )
+initialize_app()
 
 if __name__ == '__main__':
-    # Setup the logger
-    setBasePath(BASE_PATH)
-    app.logger = setup_logger ('ServiceAPI')
-    
-    # Download the OMIE data
-    data_ingest.download_OMIE_data()
-    
-    # Initialize the EnergyCosts class to calculate the LuzBoa price table
-    energy_cost = EnergyCosts('Tri-Horario-Semanal', 2023, 'luzboa-spot', 1 )
-    data_ingest.luzBoa_data = energy_cost.calc_luzboa_price_table (data_ingest.omie_data, data_ingest.profile_loss_data)
-
     # start FLASK server
     app.run(host="0.0.0.0", port=5000, debug=True, use_reloader=False)
     
