@@ -16,6 +16,7 @@ class DataIngestion():
     omie_data = None
     profile_data = None
     profile_loss_data = None
+    luzBoa_data = None
 
     def __init__(self, folder = '../OMIE_Data/', consumption_profile_data='../ERedes_profiles/E-REDES_Perfil_Consumo_2023_mod.xlsx', loss_profile_data='../ERedes_profiles/E-REDES_Perfil_Perdas_2023_mod.xlsx'):
         self.logger = setup_logger('DataIngestion')
@@ -226,7 +227,7 @@ class DataIngestion():
             "channel": channel
         }
         response = requests.get(url, params=params)
-        if response.status_code == 200:
+        if response.status_code != 200:
             self.logger.error (f"Failed to fetch data from API. Status code: {response.status_code}")
             return None
         

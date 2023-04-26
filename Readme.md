@@ -6,6 +6,13 @@ It also ingest data from E-Redes energy consumption files to analyse the costs o
 
 A public and free to use site is available at http://energytracker.pt
 
+## Change Log
+26/Apr/2023 : 
+  - Beta support for Luzboa-Spot;
+  - Shows current Cycle day and Supplier on "info" page;
+  - Minor layout changes;
+  - Bug fixes;
+
 ## Table of Contents
 
 1. [Features](#features)

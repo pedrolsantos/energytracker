@@ -9,6 +9,7 @@ var CONFIG = {
                 'chart_update_period': 12,      // 12 hours default  
                 'chart_update_period_net': 12,  // 12 hours default    
                 'EoTKey': 'XXXXXXXXXX',
+                'cycle_day': 8,
                 'allowDebug': false,
             };
 
@@ -20,9 +21,9 @@ class ApiService {
       this.baseUrl = baseUrl;
     }
     
-    async getCurrentPrice(supplier, tariff, year) {
+    async getCurrentPrice(supplier, tariff, year, cycle_day) {
       try {
-        const response = await fetch(`${this.baseUrl}/getCurrentPrice?tariff=${tariff}&year=${year}&supplier=${supplier}`);
+        const response = await fetch(`${this.baseUrl}/getCurrentPrice?tariff=${tariff}&year=${year}&supplier=${supplier}&cycle_day=${cycle_day}`);
   
         if (!response.ok) {
           throw new Error(`HTTP error: ${response.status}`);
@@ -36,10 +37,10 @@ class ApiService {
       }
     }
 
-    async getOMIEPricesForPeriod(supplier, tariff, year, startDate, endDate) {
+    async getOMIEPricesForPeriod(supplier, tariff, year, cycle_day, startDate, endDate ) {
         try {
             const response = await fetch(
-                `${this.baseUrl}/getOMIEPricesForPeriod?tariff=${tariff}&supplier=${supplier}&year=${year}&start_date=${startDate}&end_date=${endDate}`
+                `${this.baseUrl}/getOMIEPricesForPeriod?tariff=${tariff}&supplier=${supplier}&year=${year}&cycle_day=${cycle_day}&start_date=${startDate}&end_date=${endDate}`
             );
 
             if (!response.ok) {
@@ -54,8 +55,8 @@ class ApiService {
         }
     }      
 
-    async uploadEnergyFile(supplier, tariff, year, format, provider, file) {
-        const url = `${this.baseUrl}/uploadEnergyFile?supplier=${supplier}&tariff=${tariff}&year=${year}&format=${format}&provider=${provider}`;
+    async uploadEnergyFile(supplier, tariff, year, cycle_day, format, provider, file) {
+        const url = `${this.baseUrl}/uploadEnergyFile?supplier=${supplier}&tariff=${tariff}&year=${year}&cycle_day=${cycle_day}&format=${format}&provider=${provider}`;
     
         const formData = new FormData();
         formData.append('file', file);
@@ -81,9 +82,9 @@ class ApiService {
         }
     }
 
-    async getEstimationProfile(supplier, tariff, year, start_date, end_date, total_energy, records='none') {
+    async getEstimationProfile(supplier, tariff, year, cycle_day, start_date, end_date, total_energy, records='none') {
         try {
-            const response = await fetch(`${this.baseUrl}/getEstimationProfile?supplier=${supplier}&tariff=${tariff}&year=${year}&start_date=${start_date}&end_date=${end_date}&total_energy=${total_energy}&records=${records}`);
+            const response = await fetch(`${this.baseUrl}/getEstimationProfile?supplier=${supplier}&tariff=${tariff}&year=${year}&cycle_day=${cycle_day}&start_date=${start_date}&end_date=${end_date}&total_energy=${total_energy}&records=${records}`);
             if (!response.ok) {
                 throw new Error(`HTTP error: ${response.status}`);
             }
@@ -95,9 +96,9 @@ class ApiService {
         }
     }    
 
-    async getEstimationProfileManual(supplier, tariff, year, start_date, end_date, total_vazio, total_cheio, total_ponta, lagHour=0, records='none' ) {
+    async getEstimationProfileManual(supplier, tariff, year, cycle_day, start_date, end_date, total_vazio, total_cheio, total_ponta, lagHour=0, records='none' ) {
         try {
-            const response = await fetch(`${this.baseUrl}/getEstimationProfileManual?supplier=${supplier}&tariff=${tariff}&year=${year}&start_date=${start_date}&end_date=${end_date}&total_vazio=${total_vazio}&total_cheio=${total_cheio}&total_ponta=${total_ponta}&lagHour=${lagHour}&records=${records}`);
+            const response = await fetch(`${this.baseUrl}/getEstimationProfileManual?supplier=${supplier}&tariff=${tariff}&year=${year}&cycle_day=${cycle_day}&start_date=${start_date}&end_date=${end_date}&total_vazio=${total_vazio}&total_cheio=${total_cheio}&total_ponta=${total_ponta}&lagHour=${lagHour}&records=${records}`);
             if (!response.ok) {
                 throw new Error(`HTTP error: ${response.status}`);
             }
@@ -109,9 +110,9 @@ class ApiService {
         }
     }        
 
-    async getEOTData(supplier, tariff, year, key) {
+    async getEOTData(supplier, tariff, year, cycle_day, key) {
         try {
-            const response = await fetch(`${this.baseUrl}/getEOTData?supplier=${supplier}&tariff=${tariff}&year=${year}&key=${key}`);
+            const response = await fetch(`${this.baseUrl}/getEOTData?supplier=${supplier}&tariff=${tariff}&year=${year}&cycle_day=${cycle_day}&key=${key}`);
             if (!response.ok) {
                 throw new Error(`HTTP error: ${response.status}`);
             }
@@ -278,10 +279,62 @@ class PriceTracker {
         return [priceChart, priceChartNet, priceChartAnalysis];
     }
 
+    // Helper function to capitalize the first letter of each word in a string
+    formatTitleCase(str) {
+        return str
+        .toLowerCase()
+        .split('-')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join('-');
+    }
+
+    setAnalysisPageforSupplier(supplier, tariff) {
+        const now = new Date();
+        const start_date  = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 2, 0, 0);
+        const end_date = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 23, 59);
+
+        document.getElementById('analysis-comercializador').textContent = this.formatTitleCase (supplier);
+        document.getElementById('analysis-opcao-horaria').textContent = this.formatTitleCase (tariff);
+
+        const isLuzboa = (supplier === 'luzboa-spot') ? true : false;
+
+        if (isLuzboa) {
+            document.getElementById('title_profile').textContent = "Cálculo do Consumo :"
+            document.getElementById('analysis-periodo-start').value = this.formatDate(start_date, true)
+            document.getElementById('analysis-periodo-end').value = this.formatDate(end_date, true);            
+        }
+        else{
+            document.getElementById('title_profile').textContent = "Curva Perfil \"C\" :"
+        }
+
+        // Constrol elements according to supplier
+        document.getElementById('blockFileProvider').style.display = (isLuzboa)? 'none' : ''
+        document.getElementById('blockConsumoEstimado').style.display = (isLuzboa)? 'none' : ''
+        document.getElementById('blockChart').style.display = (isLuzboa)? 'none' : ''
+        document.getElementById('analysis-periodo-start').disabled = (isLuzboa)? false : true;
+        document.getElementById('analysis-periodo-end').disabled = (isLuzboa)? false : true;
+
+    
+
+        // Clear analysis data
+        document.getElementById('analysis-energia-profile-vazio-total').textContent = '0.00 kWh (0.00 €)';
+        document.getElementById('analysis-energia-profile-cheio-total').textContent = '0.00 kWh (0.00 €)';
+        document.getElementById('analysis-energia-profile-ponta-total').textContent = '0.00 kWh (0.00 €)';
+        document.getElementById('analysis-energia-profile-total').textContent       = '0.00 kWh';
+        document.getElementById('analysis-custo-profile-total').textContent         = '0.00 €';
+        document.getElementById('analysis-custo-profile-preco-medio').textContent   = '0.000000 €/kWh';
+
+        document.getElementById('analysis-custo-profile-preco-medio-vazio').textContent = '0.000000 €/kWh';
+        document.getElementById('analysis-custo-profile-preco-medio-cheio').textContent = '0.000000 €/kWh';
+        document.getElementById('analysis-custo-profile-preco-medio-ponta').textContent = '0.000000 €/kWh';
+
+    }
+
     fetchServerData( priceChart, priceChartNet, force=false) {
         logger('Fetching Price...' + this.lastUpdateChart);
         var current_price = 0
-        this.apiService.getCurrentPrice(CONFIG.supplier, CONFIG.tariff, CONFIG.year).then(data => {
+
+        this.apiService.getCurrentPrice(CONFIG.supplier, CONFIG.tariff, CONFIG.year, CONFIG.cycle_day).then(data => {
                 logger('Current Price:', data);
 
                 const currentDate = new Date();
@@ -289,10 +342,16 @@ class PriceTracker {
                 const dst = data['TAR Period']['dst'] === 0 ? ' / Inverno' : ' / Verão';
                 const dia = data['TAR Period']['dias'] === 0 ? ('Dia de Semana' + dst) : data['TAR Period']['dias'] === 1 ? ('Sábado' + dst) : ('Domingo' + dst);
                 const periodo = data['TAR Period']['periodo'] + ': ' + data['TAR Period']['start'] + ' - ' + data['TAR Period']['end'];
+                const cycle_period = data['Cycle Period']['start'].substring(0,10) ; //  + ' : ' + data['Cycle Period']['end'].substring(0,10) ;
 
                 document.getElementById('current-price-omie').textContent = `${data['OMIE price'].toFixed(2)} €/MWh`;
                 document.getElementById('current-price-net').textContent = `${data['net price'].toFixed(4)} €/kWh`;
+                
+                document.getElementById('current-cycle_period').textContent = `${cycle_period}`;
+                
                 document.getElementById('current-tarifario').textContent = `${data['Tariff']} `;
+                document.getElementById('current-supplier').textContent = `${this.formatTitleCase( data['Supplier'] )} `;
+
                 document.getElementById('current-dia').textContent = `${dia} `;
                 document.getElementById('current-periodo').textContent = `${periodo} `;
                 document.getElementById('current-time').textContent = currentDate.toLocaleTimeString('en-US', { hour12: false });
@@ -303,7 +362,7 @@ class PriceTracker {
         );
 
         if (CONFIG.EoTKey !== '' && !/^X*$/.test(CONFIG.EoTKey)) {
-            this.apiService.getEOTData(CONFIG.supplier, CONFIG.tariff, CONFIG.year, CONFIG.EoTKey).then( data => {
+            this.apiService.getEOTData(CONFIG.supplier, CONFIG.tariff, CONFIG.year, CONFIG.cycle_day, CONFIG.EoTKey).then( data => {
                 logger('EoT Data:', data);
 
                 const power    = data['power'];
@@ -380,7 +439,7 @@ class PriceTracker {
         const endDate = new Date(now.getTime() + hours * 60 * 60 * 1000);   // 6 hours from now
         logger('Fetching period from:[' + startDate + '] to:[' + endDate + '] date=[' + now + ']');
 
-        this.apiService.getOMIEPricesForPeriod(CONFIG.supplier, CONFIG.tariff, CONFIG.year, this.formatDate(startDate), this.formatDate(endDate))
+        this.apiService.getOMIEPricesForPeriod(CONFIG.supplier, CONFIG.tariff, CONFIG.year, CONFIG.cycle_day, this.formatDate(startDate), this.formatDate(endDate))
             .then(data => {                
                 logger('OMIE Prices:', data);
                 var prices = data['prices']
@@ -509,8 +568,8 @@ class PriceTracker {
         const average_price_cheio = totalEnergyAndCost.sumCost/totalEnergyAndCost.sumCheio;
         const average_price_ponta = totalEnergyAndCost.sumCost/totalEnergyAndCost.sumPonta;
 
-        document.getElementById('analysis-periodo-start').textContent = this.formatDate(global_minmaxdate.minDate, true)
-        document.getElementById('analysis-periodo-end').textContent = this.formatDate(global_minmaxdate.maxDate, true);
+        document.getElementById('analysis-periodo-start').value = this.formatDate(global_minmaxdate.minDate, true)
+        document.getElementById('analysis-periodo-end').value = this.formatDate(global_minmaxdate.maxDate, true);
 
         document.getElementById('analysis-custo-total').textContent = `${dataResults.totalCost.toFixed(2)}` + ' €';
         document.getElementById('analysis-custo-preco-medio').textContent = `${ dataResults.globalAvgPrice.toFixed(4)} ` + ' €/kWh';
@@ -926,7 +985,7 @@ class PriceTracker {
     fetchProfileDataBasedOnManual(minmaxdate, total_vazio, total_cheio, total_ponta ) {
         // Get manual profile data for "Perfil C"
         const lagHour = 1
-        apiService.getEstimationProfileManual(CONFIG.supplier, CONFIG.tariff, CONFIG.year, this.formatDate(minmaxdate.minDate) , this.formatDate(minmaxdate.maxDate) , total_vazio, total_cheio, total_ponta, lagHour, 'json' ).then(response => {
+        apiService.getEstimationProfileManual(CONFIG.supplier, CONFIG.tariff, CONFIG.year, CONFIG.cycle_day, this.formatDate(minmaxdate.minDate) , this.formatDate(minmaxdate.maxDate) , total_vazio, total_cheio, total_ponta, lagHour, 'json' ).then(response => {
             const profile_average_price_total = response['Total_Cost']/ response['Total_energy'] ;
 
             document.getElementById('analysis-energia-profile-vazio-total').textContent = `${response['Energy_Vazio'].toFixed(2)} ` + ' kWh' + ' (' + `${(response['Cost_Vazio']).toFixed(2)} ` + ' €)';
@@ -934,7 +993,7 @@ class PriceTracker {
             document.getElementById('analysis-energia-profile-ponta-total').textContent = `${response['Energy_Ponta'].toFixed(2)} ` + ' kWh' + ' (' + `${(response['Cost_Ponta']).toFixed(2)} ` + ' €)';
             document.getElementById('analysis-energia-profile-total').textContent       = `${response['Total_energy'].toFixed(2)} ` + ' kWh' ;
             document.getElementById('analysis-custo-profile-total').textContent         = `${response['Total_Cost'].toFixed(2)} ` + ' €';
-            document.getElementById('analysis-custo-profile-preco-medio').textContent   = `${profile_average_price_total.toFixed(4)} ` + ' €/kWh';
+            document.getElementById('analysis-custo-profile-preco-medio').textContent   = `${profile_average_price_total.toFixed(6)} ` + ' €/kWh';
 
             document.getElementById('analysis-custo-profile-preco-medio-vazio').textContent = `${response['Vazio_avg_price_cost'].toFixed(6)} ` + ' €/kWh';
             document.getElementById('analysis-custo-profile-preco-medio-cheio').textContent = `${response['Cheio_avg_price_cost'].toFixed(6)} ` + ' €/kWh';
@@ -946,11 +1005,17 @@ class PriceTracker {
             }
 
             const switchChartReal = document.getElementById('switch-chart').checked
-            if (switchChartReal != true) {
+            if (!switchChartReal && this.lastEstimateDataFetch !== null) {
                 priceTrackerApp.loadDataOnAnalysisChart (priceChartAnalysis, priceTrackerApp.lastEstimateDataFetch);
             }
             
-            document.getElementById('title_profile').textContent = "Curva Perfil \"C\" :"
+            if (CONFIG.supplier == "luzboa-spot") {
+                document.getElementById('title_profile').textContent = "Cálculo do Consumo :"
+            }
+            else{
+                document.getElementById('title_profile').textContent = "Curva Perfil \"C\" :"
+            }
+            
         })
         .catch(error => {
             console.error('fetchProfileDataBasedOnManual Error:', error);
@@ -959,7 +1024,7 @@ class PriceTracker {
    
     fetchProfileDataBasedOnFile(minmaxdate, total_energy ) {
         // Get the file data from the form
-        apiService.getEstimationProfile(CONFIG.supplier, CONFIG.tariff, CONFIG.year, this.formatDate(minmaxdate.minDate) , this.formatDate(minmaxdate.maxDate), total_energy, 'json' ).then(response => {
+        apiService.getEstimationProfile(CONFIG.supplier, CONFIG.tariff, CONFIG.year, CONFIG.cycle_day, this.formatDate(minmaxdate.minDate) , this.formatDate(minmaxdate.maxDate), total_energy, 'json' ).then(response => {
             const profile_average_price_total = response['Total_Cost']/ response['Total_energy'] ;
 
             document.getElementById('analysis-energia-profile-vazio-total').textContent = `${response['Energy_Vazio'].toFixed(2)} ` + ' kWh' + ' (' + `${(response['Cost_Vazio']).toFixed(2)} ` + ' €)';
@@ -1015,8 +1080,8 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('config-supplier').value = (config.supplier=== undefined)? CONFIG.supplier : config.supplier;
         document.getElementById('config-year').value = (config.year=== undefined)? CONFIG.year : config.year ;
         document.getElementById('config-eot-key').value = (config.configEotKey === undefined) ? CONFIG.EoTKey : config.configEotKey;
+        document.getElementById('config-cycle-day').value = (config.cycle_day === undefined) ? CONFIG.cycle_day : config.cycle_day;
 
-        //CONFIG.api_url = (config.apiUrl === undefined) ? CONFIG.api_url : config.apiUrl ;
         CONFIG.chart_update_period = (config.hours === undefined) ? CONFIG.chart_update_period : config.hours;
         CONFIG.chart_update_period_net = (config.hours === undefined) ? CONFIG.chart_update_period_net : config.hours;
         CONFIG.tariff =  (config.tariff === undefined)? CONFIG.tariff : config.tariff;
@@ -1024,6 +1089,7 @@ document.addEventListener('DOMContentLoaded', () => {
         CONFIG.year = (config.year=== undefined)? CONFIG.year : config.year ;
         CONFIG.EoTKey = (config.configEotKey === undefined) ? CONFIG.EoTKey : config.configEotKey;
         CONFIG.curva_perfil_c = (config.curva_perfil_c=== undefined)? CONFIG.curva_perfil_c : config.curva_perfil_c;
+        CONFIG.cycle_day = (config.cycle_day === undefined) ? CONFIG.cycle_day : config.cycle_day;
     
         logger ('Loaded CONFIG: ', CONFIG);            
     }
@@ -1065,6 +1131,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Configure the slider
     slider = new Slider('#analysis-data-range', {enabled: false});
 
+    // Configure the Analysis Page according to the Supplier
+    priceTrackerApp.setAnalysisPageforSupplier(CONFIG.supplier, CONFIG.tariff)
+
     // Call the function immediately
     priceTrackerApp.fetchServerData( priceChart, priceChartNet, force=true);
 
@@ -1099,6 +1168,27 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    const now = new Date();
+    const start_date  = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 2, 0, 0);
+    const end_date = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 23, 59);
+
+    const dtp_start = document.getElementById('analysis-periodo-start');
+    flatpickr(dtp_start, {
+        enableTime: true,
+        dateFormat: "Y-m-d H:i",
+        defaultDate: start_date,
+        time_24hr: true
+      });
+
+    const dtp_end = document.getElementById('analysis-periodo-end');
+    flatpickr(dtp_end, {
+        enableTime: true,
+        dateFormat: "Y-m-d H:i",
+        defaultDate: end_date,
+        time_24hr: true
+    });
+  
+
 });
 
 
@@ -1126,6 +1216,7 @@ function handleStoreConfig (event) {
     const supplier = document.getElementById('config-supplier').value;
     const year   = document.getElementById('config-year').value;
     const configEotKey = document.getElementById('config-eot-key').value;
+    const cycle_day = document.getElementById('config-cycle-day').value;
 
     const apiUrl = CONFIG.api_url;
 
@@ -1136,7 +1227,8 @@ function handleStoreConfig (event) {
         year,
         configEotKey,
         supplier,
-        curva_perfil_c
+        curva_perfil_c,
+        cycle_day
     };
 
     CONFIG.chart_update_period = hours;
@@ -1146,6 +1238,7 @@ function handleStoreConfig (event) {
     CONFIG.year = year;
     CONFIG.EoTKey = configEotKey;
     CONFIG.curva_perfil_c = curva_perfil_c;
+    CONFIG.cycle_day = cycle_day;
     
     priceTrackerApp.apiService = new ApiService(apiUrl);
     priceTrackerApp.chartUpdatePeriod = hours;
@@ -1154,6 +1247,10 @@ function handleStoreConfig (event) {
     localStorage.setItem('config', JSON.stringify(config));
     logger('Configuration saved!', CONFIG);
 
+    // Configure the Analysis Page according to the Supplier
+    priceTrackerApp.setAnalysisPageforSupplier(CONFIG.supplier, CONFIG.tariff)
+
+    // Call the Fetch function to updathe charts
     priceTrackerApp.fetchServerData( priceChart, priceChartNet, force=true);
 
     const inicioTab = new bootstrap.Tab(document.getElementById('home-tab'));
@@ -1181,6 +1278,58 @@ function handleSwitchChange_Chart(event){
 }
 
 function handleAnaliseRefreshContador (event){
+
+    if (CONFIG.supplier == "luzboa-spot") {
+        const tarifa = CONFIG.tariff;
+        
+        // Map the tariff to the input ids needed to validate
+        const tarifaMap = {
+            simples: ['analysis-contador-cheio'],
+            bi: ['analysis-contador-vazio', 'analysis-contador-cheio'],
+            tri: ['analysis-contador-vazio', 'analysis-contador-cheio', 'analysis-contador-ponta']
+        };
+        
+        // Find the tariff key
+        const tarifaKey = Object.keys(tarifaMap).find(key => tarifa.toLowerCase().includes(key));
+        // Get the input ids
+        const ids = tarifaMap[tarifaKey] || [];
+
+        const form = document.getElementById('analysisForm');
+        const inputsToValidate = document.querySelectorAll('[data-validate]');
+        let isValid = true;
+      
+        inputsToValidate.forEach(input => {
+            if (ids.includes(input.id)) {
+              const value = parseFloat(input.value);
+              if (isNaN(value) || value <= 0) {
+                input.classList.add('is-invalid');
+                isValid = false;
+              } else {
+                input.classList.remove('is-invalid');
+              }
+            }
+        });
+
+        form.classList.add('was-validated');
+
+        if (isValid) {
+            const dtp_start = new Date (document.getElementById('analysis-periodo-start').value);
+            const dtp_end = new Date(document.getElementById('analysis-periodo-end').value) ;
+
+            const period = { minDate: dtp_start, maxDate: dtp_end }
+
+            var inputVazio = ( document.getElementById('analysis-contador-vazio').value );
+            var inputCheio = ( document.getElementById('analysis-contador-cheio').value );
+            var inputPonta = ( document.getElementById('analysis-contador-ponta').value ) ;
+
+            document.getElementById('title_profile').textContent = "Cálculo do Consumo :" + " ..... Em Processamento ...."
+            priceTrackerApp.fetchProfileDataBasedOnManual(period, inputVazio, inputCheio, inputPonta,)
+        }
+
+        return;
+    }
+
+    // In case of Coopernico supplier:
     if (priceTrackerApp.lastRealDataFetch == null) {
         // No data to process
         return;
@@ -1224,7 +1373,7 @@ async function handleFileInputChange(event) {
             const provider = document.getElementById("analisys-provider").innerHTML.trim();
             logger('File selected:', file.name, 'Provider:', provider);
 
-            const response = await apiService.uploadEnergyFile(CONFIG.supplier, CONFIG.tariff, CONFIG.year, 'json', provider, file);
+            const response = await apiService.uploadEnergyFile(CONFIG.supplier, CONFIG.tariff, CONFIG.year, CONFIG.cycle_day, 'json', provider, file);
             logger('UploadEnergyFile: File uploaded successfully:', response);
 
             // Turn all switchs On
@@ -1247,7 +1396,7 @@ function updateDropDownProviderTitle(event, option) {
     event.preventDefault();
     const dropdownMenuButton = document.getElementById("analisys-provider");
     dropdownMenuButton.innerHTML = option.innerHTML;
- }
+}
 
 function showAlert(message) {
     const alert = document.getElementById('processingAlert');

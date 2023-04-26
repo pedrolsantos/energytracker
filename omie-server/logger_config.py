@@ -1,4 +1,5 @@
 import os
+import sys
 import logging
 from logging.handlers import RotatingFileHandler
 
@@ -25,4 +26,12 @@ def setup_logger(name):
     file_handler.setFormatter(formatter)
 
     logger.addHandler(file_handler)
+
+    # Set up a StreamHandler to log messages to STDOUT
+    stream_handler = logging.StreamHandler(sys.stdout)
+    stream_handler.setLevel(logging.DEBUG)
+    stream_handler.setFormatter(formatter)
+
+    logger.addHandler(stream_handler)
+
     return logger

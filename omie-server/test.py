@@ -1,9 +1,23 @@
+import os
 import datetime
 from Calculations import EnergyCosts
 from Ingestion import DataIngestion
 import json
 
-data_ingest = DataIngestion('OMIE_Data/')
+
+
+currentDir = os.path.dirname(os.path.abspath(__file__))
+BASE_PATH = os.path.join(currentDir, '..' )
+OMIE_PATH = os.path.join(BASE_PATH, 'OMIE_Data/')
+CONSUMOS_PATH = os.path.join(BASE_PATH, 'Consumos/')
+EREDES_PATH = os.path.join(BASE_PATH, 'ERedes_profiles/')
+
+CONSUMO_PROFILE_FILE    = os.path.join(EREDES_PATH, 'E-REDES_Perfil_Consumo_2023_mod.xlsx')
+LOSS_PROFILE_FILE       = os.path.join(EREDES_PATH, 'E-REDES_Perfil_Perdas_2023_mod.xlsx')
+
+data_ingest = DataIngestion(OMIE_PATH, CONSUMO_PROFILE_FILE, LOSS_PROFILE_FILE )
+
+
 energy_cost = EnergyCosts('Tri-Horario-Semanal', 2023)
 
 
@@ -11,7 +25,7 @@ energy_cost = EnergyCosts('Tri-Horario-Semanal', 2023)
 #print (omie_data.loc['2023-03-24 07:00:00']['Price_PT'])
 #print ( get_price_from_date (omie_data, '2023-03-23 15:30', 'Price_PT'))
 
-dfConsumo = data_ingest.load_ERedes_Consumption_data ('Consumos/Consumos_PT166184330_Mar23.xlsx')
+dfConsumo = data_ingest.load_ERedes_Consumption_data ('../Consumos/Consumos_PT166184330_Mar23.xlsx')
 # #print (dfConsumo.head (10))
 # dfConsumo = energy_cost.add_energy_consumption_cost_column (dfConsumo, data_ingest.omie_data)
 
@@ -43,15 +57,15 @@ dfConsumo = data_ingest.load_ERedes_Consumption_data ('Consumos/Consumos_PT16618
 # print (period_energy)
 
 
-    
-start_date = datetime.datetime.strptime("2023-03-01-00:00", "%Y-%m-%d-%H:%M")
-end_date = datetime.datetime.strptime("2023-03-28-02:30", "%Y-%m-%d-%H:%M")
-vazio = 496
-cheio = 154
-ponta = 69
+# test
+start_date  = datetime.datetime( 2023, 3, 10, 0,0,0)
+end_date    = datetime.datetime( 2023, 4, 2, 23, 59, 59)
 
-# response = energy_cost.get_profile_estimation_manual (data_ingest.profile_data, data_ingest.omie_data, start_date, end_date, vazio, cheio, ponta)
+data = energy_cost.get_omie_price_average_for_period (energy_cost.omie_data, energy_cost.loss_profile_data, start_date, end_date, lagHour=1)
+#per_loss = self.get_loss_profile_for_period (loss_profile_data, start_date, end_date)
 
-count = energy_cost.count_15min_periods_today()
+print (data)
+
+
 
 print ( 'end' )

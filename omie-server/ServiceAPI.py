@@ -56,6 +56,7 @@ def generate_dates_since_last_max(toDate):
     return filenames
 
 def check_and_download_OMIE ():
+    ret = False
     date = datetime.datetime.now() + timedelta(days=1)
     currentHour = date.hour 
     date = date.replace(hour=0, minute=0)
@@ -67,15 +68,19 @@ def check_and_download_OMIE ():
                 data_ingest.download_OMIE_data(req_date)
             data_ingest.load_OMIE_data(data_ingest.omie_folder)
             app.logger.info ('OMIE today data updated successfully')
+            ret = True
         elif (len(dates) > 1): # if more than one day has passed - download all new data available
             for req_date in dates:
                 data_ingest.download_OMIE_data(req_date)
             data_ingest.load_OMIE_data(data_ingest.omie_folder)
             app.logger.info ('OMIE data updated successfully')
+            ret = True
         else:
             app.logger.info ('OMIE data check skipped')
     else:
         app.logger.info ('OMIE data is up to date')
+    
+    return ret
 
 def send_file_and_delete(file_path, filename, folder=CONSUMOS_PATH):
     if os.path.exists(file_path):
@@ -136,7 +141,7 @@ def download_omie_data():
 @app.route('/uploadEnergyFile', methods=['POST'])
 def upload_energy_file():
     # Test with:
-    # curl -X POST -F "file=@./ERedes_PT166184330_Fev23.xlsx"  "http://127.0.0.1:5000/uploadEnergyFile?supplier=Coopernico&tariff=Tri-Horario-Semanal&year=2023&format=json&provider=E-Redes"
+    # curl -X POST -F "file=@./ERedes_PT166184330_Fev23.xlsx"  "http://127.0.0.1:5000/uploadEnergyFile?supplier=coopernico-base&tariff=Tri-Horario-Semanal&year=2023&cycle_day=1&format=json&provider=E-Redes"
     app.logger.info ("Service: upload_energy_file")
 
     str_supplier = request.args.get('supplier')
@@ -163,6 +168,12 @@ def upload_energy_file():
     if not str_provider or str_provider not in {'E-Redes', 'EoT' }:
         app.logger.error('Invalid provider')
         return jsonify({'error': 'Invalid provider'}), 400
+
+    arg_cycle_day = request.args.get('cycle_day')
+    if (not arg_cycle_day) or (not arg_cycle_day.isdigit()) or (int(arg_cycle_day) < 0) or (int(arg_cycle_day) > 31) :
+        app.logger.error ("Invalid cycle_day")
+        return jsonify({'error': 'Invalid cycle_day'}), 400
+    cycle_day = int(arg_cycle_day)
 
     arg_lagHour = request.args.get('lagHour')
     laghour = 1
@@ -191,7 +202,8 @@ def upload_energy_file():
         file.save(filepath)
 
     # Initialize the EnergyCosts class
-    energy_cost = EnergyCosts(str_tarifario, int(str_year) , str_supplier)
+    energy_cost = EnergyCosts(str_tarifario, int(str_year) , str_supplier, cycle_day)
+    energy_cost.setLuzboaPrices (data_ingest.luzBoa_data)
     
     divisionFactor = 1
     if (str_provider == 'E-Redes'):
@@ -237,7 +249,7 @@ def upload_energy_file():
 @app.route('/getPriceForDate', methods=['GET'])
 def get_price_for_date():
     # test with:
-    # curl -X GET "http://127.0.0.1:5000/getPriceForDate?supplier=Coopernico&tariff=Tri-Horario-Semanal&year=2023&date=2023-03-23-12:00"
+    # curl -X GET "http://127.0.0.1:5000/getPriceForDate?supplier=Coopernico&tariff=Tri-Horario-Semanal&year=2023&date=2023-03-23-12:00&cycle_day=1"
     app.logger.info ("Service: getPriceForDate")
 
     str_supplier = request.args.get('supplier')
@@ -260,16 +272,26 @@ def get_price_for_date():
         app.logger.error ("Invalid year")
         return jsonify({'error': 'Invalid year'}), 400
 
+    arg_cycle_day = request.args.get('cycle_day')
+    if (not arg_cycle_day) or (not arg_cycle_day.isdigit()) or (int(arg_cycle_day) < 0) or (int(arg_cycle_day) > 31) :
+        app.logger.error ("Invalid cycle_day")
+        return jsonify({'error': 'Invalid cycle_day'}), 400
+    cycle_day = int(arg_cycle_day)
+
     arg_lagHour = request.args.get('lagHour')
     laghour = 1
     if (arg_lagHour)  :
         laghour = int(arg_lagHour)
 
     # Initialize the EnergyCosts class
-    energy_cost = EnergyCosts(str_tarifario, int(str_year), str_supplier )
+    energy_cost = EnergyCosts(str_tarifario, int(str_year), str_supplier, cycle_day )
+    energy_cost.setLuzboaPrices (data_ingest.luzBoa_data)
 
     # Check if OMIE data is updated
-    check_and_download_OMIE ()
+    ret = check_and_download_OMIE ()
+    if (ret):
+        # Recalculate the LuzBoa price table
+        data_ingest.luzBoa_data = energy_cost.calc_luzboa_price_table (data_ingest.omie_data, data_ingest.profile_loss_data)
 
     date = datetime.datetime.strptime(str_date, '%Y-%m-%d-%H:%M')
     omie_price, omie_ret_data  = energy_cost.get_omie_price_for_date (data_ingest.omie_data, date, lagHour=laghour)
@@ -288,7 +310,7 @@ def get_price_for_date():
 @app.route('/getCurrentPrice', methods=['GET'])
 def get_current_price():
     # test with:
-    # curl -X GET "http://127.0.0.1:5000/getCurrentPrice?supplier=coopernico-base&tariff=Tri-Horario-Semanal&year=2023"
+    # curl -X GET "http://127.0.0.1:5000/getCurrentPrice?supplier=coopernico-base&tariff=Tri-Horario-Semanal&year=2023&cycle_day=1"
     app.logger.info ("Service: getCurrentPrice")
 
     str_supplier = request.args.get('supplier')
@@ -306,16 +328,27 @@ def get_current_price():
         app.logger.error ("Invalid year")
         return jsonify({'error': 'Invalid year'}), 400
 
+    arg_cycle_day = request.args.get('cycle_day')
+    if (not arg_cycle_day) or (not arg_cycle_day.isdigit()) or (int(arg_cycle_day) < 0) or (int(arg_cycle_day) > 31) :
+        app.logger.error ("Invalid cycle_day")
+        return jsonify({'error': 'Invalid cycle_day'}), 400
+    cycle_day = int(arg_cycle_day)
+
     arg_lagHour = request.args.get('lagHour')
     laghour = 1
     if (arg_lagHour)  :
         laghour = int(arg_lagHour)
 
     # Initialize the EnergyCosts class
-    energy_cost = EnergyCosts(str_tarifario, int(str_year), str_supplier )
+    energy_cost = EnergyCosts(str_tarifario, int(str_year), str_supplier, cycle_day )
+    energy_cost.setLuzboaPrices (data_ingest.luzBoa_data)
 
     # Check if OMIE data is updated
-    check_and_download_OMIE ()
+    ret = check_and_download_OMIE ()
+    if (ret):
+        # Recalculate the LuzBoa price table
+        data_ingest.luzBoa_data = energy_cost.calc_luzboa_price_table (data_ingest.omie_data, data_ingest.profile_loss_data)
+        energy_cost.setLuzboaPrices (data_ingest.luzBoa_data)
 
     date = datetime.datetime.now() 
     if date > data_ingest.omie_data.index.max():
@@ -326,19 +359,24 @@ def get_current_price():
     tar_price, tar_period = energy_cost.get_price_tar (date)
     price, price_data = energy_cost.calc_energy_price (date, 1, data_ingest.omie_data, data_ingest.profile_loss_data, lagHour=laghour )
 
+    price_data['Cycle Period']['start'] = price_data['Cycle Period']['start'].strftime('%Y-%m-%d %H:%M')
+    price_data['Cycle Period']['end'] = price_data['Cycle Period']['end'].strftime('%Y-%m-%d %H:%M')
+
     app.logger.info ("Service Done - getCurrentPrice")
     return jsonify({'date': date.strftime('%Y-%m-%d %H:%M'), 
                     'net price': price, 
                     'OMIE price': omie_price, 
                     'OMIE Data': omie_ret_data,
                     'Tariff': energy_cost.energy_cost_option,
+                    'Supplier': energy_cost.energy_supplier,
+                    'Cycle Period': price_data['Cycle Period'],
                     'TAR':tar_price,
                     'TAR Period': tar_period }), 200
 
 @app.route('/getOMIEPricesForPeriod', methods=['GET'])
 def getOMIEPricesForPeriod ():
     # test with:
-    # curl -X GET "http://127.0.0.1:5000/getOMIEPricesForPeriod?supplier=coopernico-base&tariff=Simples&year=2023&start_date=2023-02-23-00:00&end_date=2023-02-24-00:00"
+    # curl -X GET "http://127.0.0.1:5000/getOMIEPricesForPeriod?supplier=coopernico-base&tariff=Simples&year=2023&cycle_day=1&supplier=coopernico-base&start_date=2023-02-23-00:00&end_date=2023-02-24-00:00"
     app.logger.info ("Service: getOMIEPricesForPeriod")
 
     str_supplier = request.args.get('supplier')
@@ -355,12 +393,23 @@ def getOMIEPricesForPeriod ():
     if (not str_year) or (not str_year.isdigit()) or (int(str_year) < 1900) or (int(str_year) > 2100) :
         app.logger.error ("Invalid year")
         return jsonify({'error': 'Invalid year'}), 400
+    
+    arg_cycle_day = request.args.get('cycle_day')
+    if (not arg_cycle_day) or (not arg_cycle_day.isdigit()) or (int(arg_cycle_day) < 0) or (int(arg_cycle_day) > 31) :
+        app.logger.error ("Invalid cycle_day")
+        return jsonify({'error': 'Invalid cycle_day'}), 400
+    cycle_day = int(arg_cycle_day)    
 
     # Initialize the EnergyCosts class
-    energy_cost = EnergyCosts(str_tarifario, int(str_year), str_supplier )
+    energy_cost = EnergyCosts(str_tarifario, int(str_year), str_supplier, cycle_day )
+    energy_cost.setLuzboaPrices (data_ingest.luzBoa_data)
 
     # Check if OMIE data is updated
-    check_and_download_OMIE ()
+    ret = check_and_download_OMIE ()
+    if (ret):
+        # Recalculate the LuzBoa price table
+        data_ingest.luzBoa_data = energy_cost.calc_luzboa_price_table (data_ingest.omie_data, data_ingest.profile_loss_data)
+        energy_cost.setLuzboaPrices (data_ingest.luzBoa_data)
 
     start_date = request.args.get('start_date')
     end_date = request.args.get('end_date')
@@ -412,7 +461,7 @@ def getOMIEPricesForPeriod ():
 @app.route('/getEstimationProfile', methods=['GET'])
 def estimate_profile_cost():
     # test with:
-    # curl -X GET "http://127.0.0.1:5000/getEstimationProfile?tariff=Tri-Horario-Semanal&year=2023&start_date=2023-02-23-00:00&end_date=2023-02-24-00:00&total_energy=655.32"
+    # curl -X GET "http://127.0.0.1:5000/getEstimationProfile?tariff=Tri-Horario-Semanal&year=2023&cycle_day=1&supplier=coopernico-base&start_date=2023-02-23-00:00&end_date=2023-02-24-00:00&total_energy=655.32"
     app.logger.info ("Service: getEstimationProfile")
 
     str_supplier = request.args.get('supplier')
@@ -430,11 +479,22 @@ def estimate_profile_cost():
         app.logger.error ("Invalid year")
         return jsonify({'error': 'Invalid year'}), 400
 
+    arg_cycle_day = request.args.get('cycle_day')
+    if (not arg_cycle_day) or (not arg_cycle_day.isdigit()) or (int(arg_cycle_day) < 0) or (int(arg_cycle_day) > 31) :
+        app.logger.error ("Invalid cycle_day")
+        return jsonify({'error': 'Invalid cycle_day'}), 400
+    cycle_day = int(arg_cycle_day)
+
     # Initialize the EnergyCosts class
-    energy_cost = EnergyCosts(str_tarifario, int(str_year), str_supplier )
+    energy_cost = EnergyCosts(str_tarifario, int(str_year), str_supplier, cycle_day )
+    energy_cost.setLuzboaPrices (data_ingest.luzBoa_data)
 
     # Check if OMIE data is updated
-    check_and_download_OMIE ()
+    ret = check_and_download_OMIE ()
+    if (ret):
+        # Recalculate the LuzBoa price table
+        data_ingest.luzBoa_data = energy_cost.calc_luzboa_price_table (data_ingest.omie_data, data_ingest.profile_loss_data)
+        energy_cost.setLuzboaPrices (data_ingest.luzBoa_data)
 
     start_date = request.args.get('start_date')
     end_date = request.args.get('end_date')
@@ -491,7 +551,7 @@ def estimate_profile_cost():
 @app.route('/getEstimationProfileManual', methods=['GET'])
 def estimate_profile_cost_manual():
     # test with:
-    # curl -X GET "http://127.0.0.1:5000/getEstimationProfile?tariff=Tri-Horario-Semanal&year=2023&start_date=2023-02-23-00:00&end_date=2023-02-24-00:00&total_vazio=155.32&total_cheio=155.32&total_ponta=155.32"
+    # curl -X GET "http://127.0.0.1:5000/getEstimationProfile?tariff=Tri-Horario-Semanal&year=2023&start_date=2023-02-23-00:00&end_date=2023-02-24-00:00&total_vazio=155.32&total_cheio=155.32&total_ponta=155.32&cycle_day=1&supplier=coopernico-base"
     app.logger.info ("Service: getEstimationProfileManual")
 
     str_supplier = request.args.get('supplier')
@@ -508,12 +568,23 @@ def estimate_profile_cost_manual():
     if (not str_year) or (not str_year.isdigit()) or (int(str_year) < 1900) or (int(str_year) > 2100) :
         app.logger.error("Invalid year")
         return jsonify({'error': 'Invalid year'}), 400
+    
+    arg_cycle_day = request.args.get('cycle_day')
+    if (not arg_cycle_day) or (not arg_cycle_day.isdigit()) or (int(arg_cycle_day) < 0) or (int(arg_cycle_day) > 31) :
+        app.logger.error ("Invalid cycle_day")
+        return jsonify({'error': 'Invalid cycle_day'}), 400
+    cycle_day = int(arg_cycle_day)    
 
     # Initialize the EnergyCosts class
-    energy_cost = EnergyCosts(str_tarifario, int(str_year), str_supplier )
+    energy_cost = EnergyCosts(str_tarifario, int(str_year), str_supplier, cycle_day )
+    energy_cost.setLuzboaPrices (data_ingest.luzBoa_data)
 
     # Check if OMIE data is updated
-    check_and_download_OMIE ()
+    ret = check_and_download_OMIE ()
+    if (ret):
+        # Recalculate the LuzBoa price table
+        data_ingest.luzBoa_data = energy_cost.calc_luzboa_price_table (data_ingest.omie_data, data_ingest.profile_loss_data)
+        energy_cost.setLuzboaPrices (data_ingest.luzBoa_data)
 
     start_date = request.args.get('start_date')
     end_date = request.args.get('end_date')
@@ -585,7 +656,7 @@ def estimate_profile_cost_manual():
 @app.route('/getEOTData', methods=['GET'])
 def get_eot_data ():
     # test with:
-    # curl -X GET "http://127.0.0.1:5000/getEOTData?tariff=Tri-Horario-Semanal&year=2023?key=XXXXXXXXX"
+    # curl -X GET "http://127.0.0.1:5000/getEOTData?tariff=Tri-Horario-Semanal&year=2023?key=XXXXXXXXX&cycle_day=1&supplier=coopernico-base"
     app.logger.info ("Service: getEOTData")
 
     str_supplier = request.args.get('supplier')
@@ -608,6 +679,12 @@ def get_eot_data ():
         app.logger.error("Invalid EOT Key")
         return jsonify({'error': 'Invalid Key'}), 400
 
+    arg_cycle_day = request.args.get('cycle_day')
+    if (not arg_cycle_day) or (not arg_cycle_day.isdigit()) or (int(arg_cycle_day) < 0) or (int(arg_cycle_day) > 31) :
+        app.logger.error ("Invalid cycle_day")
+        return jsonify({'error': 'Invalid cycle_day'}), 400
+    cycle_day = int(arg_cycle_day)
+
     arg_lagHour = request.args.get('lagHour')
     laghour = 1
     if (arg_lagHour)  :
@@ -623,7 +700,8 @@ def get_eot_data ():
     power = response['channels'][0]['feeds'][0]['value']
 
     # Initialize the EnergyCosts class
-    energy_cost = EnergyCosts(str_tarifario, int(str_year) , str_supplier)
+    energy_cost = EnergyCosts(str_tarifario, int(str_year) , str_supplier, cycle_day)
+    energy_cost.setLuzboaPrices (data_ingest.luzBoa_data)
 
     # find the number of 15 min periods since midnight
     count_periods = energy_cost.count_15min_periods_today()
@@ -683,7 +761,7 @@ def get_eot_data ():
 @app.route('/getProfilePeriod', methods=['GET'])
 def getProfilePeriod():
     # test with:
-    # curl -X GET "http://127.0.0.1:5000/getProfilePeriod?tariff=Tri-Horario-Semanal&year=2023&start_date=2023-02-23-00:00&end_date=2023-02-24-00:00"
+    # curl -X GET "http://127.0.0.1:5000/getProfilePeriod?tariff=Tri-Horario-Semanal&year=2023&start_date=2023-02-23-00:00&end_date=2023-02-24-00:00&cycle_day=1&supplier=coopernico-base"
     app.logger.info ("Service: getProfilePeriod")
 
     str_supplier = request.args.get('supplier')
@@ -699,6 +777,12 @@ def getProfilePeriod():
     if (not str_year) or (not str_year.isdigit()) or (int(str_year) < 1900) or (int(str_year) > 2100) :
         app.logger.error("Invalid year: " + str_year)
         return jsonify({'error': 'Invalid year'}), 400
+    
+    arg_cycle_day = request.args.get('cycle_day')
+    if (not arg_cycle_day) or (not arg_cycle_day.isdigit()) or (int(arg_cycle_day) < 0) or (int(arg_cycle_day) > 31) :
+        app.logger.error ("Invalid cycle_day")
+        return jsonify({'error': 'Invalid cycle_day'}), 400
+    cycle_day = int(arg_cycle_day)    
 
     start_date = request.args.get('start_date')
     end_date = request.args.get('end_date')
@@ -719,7 +803,8 @@ def getProfilePeriod():
         return jsonify({'error': 'Invalid date range'}), 400
 
     # Initialize the EnergyCosts class
-    energy_cost = EnergyCosts(str_tarifario, int(str_year) , str_supplier)
+    energy_cost = EnergyCosts(str_tarifario, int(str_year) , str_supplier, cycle_day)
+    energy_cost.setLuzboaPrices (data_ingest.luzBoa_data)
 
     records = energy_cost.get_profile_by_period(data_ingest.profile_data, start_date, end_date)
     
@@ -748,7 +833,13 @@ if __name__ == '__main__':
     setBasePath(BASE_PATH)
     app.logger = setup_logger ('ServiceAPI')
     
-    # Download the OMIE data and start FLASK server
+    # Download the OMIE data
     data_ingest.download_OMIE_data()
+    
+    # Initialize the EnergyCosts class to calculate the LuzBoa price table
+    energy_cost = EnergyCosts('Tri-Horario-Semanal', 2023, 'luzboa-spot', 1 )
+    data_ingest.luzBoa_data = energy_cost.calc_luzboa_price_table (data_ingest.omie_data, data_ingest.profile_loss_data)
+
+    # start FLASK server
     app.run(host="0.0.0.0", port=5000, debug=True, use_reloader=False)
     

@@ -54,8 +54,8 @@
             <div class="tab-pane fade show active" id="home" role="tabpanel" aria-labelledby="home-tab">
                 <div class="grey-bg container-fluid" style="padding-left: 15rem;"></div>
                     <div class="row">
-
                         <div class="container">
+                            <!-- Coluna 1 -->
                             <div class="row">
                                 <div class="col-12 col-md-4 col-lg-4 text-left" style="padding-top: 1.0rem !important;">
                                     <h5 class="text-left text-tab-header">Preços</h5>
@@ -70,10 +70,15 @@
                                                     <td class="text-right text-black-50 text-uppercase">Preço OMIE:</td>
                                                     <td class="text-left text-primary" id="current-price-omie">0 €/MWh</td>
                                                 </tr>
+                                                <tr>
+                                                    <td class="text-right text-black-50 text-uppercase">Ciclo de Leitura:</td>
+                                                    <td class="text-left text-primary" id="current-cycle_period"> --- </td>
+                                                </tr>
                                             </tbody>
                                         </table>
                                     </div>
                             </div>
+                            <!-- Coluna 2 -->
                             <div class="col-12 col-md-4 col-lg-4 text-left" style="padding-top: 1.0rem !important;" id="consumo-col">
                                 <h5 class="text-left text-tab-header">Consumo</h5>
                                 <div class="table-responsive">
@@ -91,17 +96,22 @@
                                     </table>
                                 </div>                      
                             </div>
+                            <!-- Coluna 3 -->
                             <div class="col-12 col-md-4 col-lg-4 text-left" style="padding-top: 1.0rem !important;">
-                                <h5 class="text-left text-tab-header">Período</h5>
+                                <h5 class="text-left text-tab-header">Tarifa</h5>
                                 <div class="table-responsive">
                                     <table class="table">
-                                        <tbody>                      
+                                        <tbody>
                                             <tr>
-                                                <td class="text-right text-uppercase text-black-50">Tarifário:</td>
+                                                <td class="text-right text-uppercase text-black-50">Comercializador:</td>
+                                                <td class="text-left w-auto bg-body text-nowrap text-primary" id="current-supplier">---</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="text-right text-uppercase text-black-50">Opção Horária:</td>
                                                 <td class="text-left w-auto bg-body text-nowrap text-primary" id="current-tarifario">Tri-Horario-Semanal</td>
                                             </tr>
                                             <tr>
-                                                <td class="text-right h-auto text-nowrap text-uppercase text-black-50">Dia:</td>
+                                                <td class="text-right h-auto text-nowrap text-uppercase text-black-50">Tipo Dia:</td>
                                                 <td class="text-left text-nowrap text-primary" id="current-dia">-----</td>
                                             </tr>
                                             <tr>
@@ -140,36 +150,64 @@
                                         <!-- Formulario de Input -->
                                         <div class="row">
                                             <div class="col-xl-4 col-lg-6 col-md-6 col-sm-12 col-12">
+                                                <!-- Datas de Fornecedor -->
+                                                <div class="row">
+                                                    <h6 class="d-flex justify-content-between" style="color: lightslategray;">
+                                                        Comercializador:
+                                                        <span id="analysis-comercializador" class="text-end" style="color: dodgerblue;"></span>
+                                                    </h6>
+                                                </div>
+                                                <div id="infoTimeOption">
+                                                    <h6 class="d-flex justify-content-between" style="color: lightslategray;">
+                                                        Opção Horária:
+                                                        <span id="analysis-opcao-horaria" class="text-end" style="color: dodgerblue;"></span>
+                                                    </h6>
+                                                </div>
 
                                                 <!-- Dados de Ficheiro e Fornecedor -->
-                                                <h6 class="d-flex justify-content-between" style="color: lightslategray;">
-                                                    Fornecedor:
-                                                    <div class="dropdown shadow-0" style="height: 10px;">
-                                                        <a class="btn btn-info dropdown-toggle text-end btn-xs slim-dropdown-btn" type="button" id="analisys-provider" data-bs-toggle="dropdown" aria-expanded="false" style="color: darkgreen;background-color: #FFFFFF;">
-                                                            E-Redes
-                                                        </a>                                            
-                                                        <ul class="dropdown-menu slim-dropdown-menu" aria-labelledby="dropdownMenuButton"> 
-                                                            <li><a class="dropdown-item" href="#" onclick="updateDropDownProviderTitle(event, this)">E-Redes</a></li>
-                                                            <li><a class="dropdown-item" href="#" onclick="updateDropDownProviderTitle(event, this)">EoT</a></li>
-                                                        </ul>
+                                                <div id="blockFileProvider">
+                                                    <h6 class="d-flex justify-content-between" style="color: lightslategray;" >
+                                                        Fornecedor:
+                                                        <div class="dropdown shadow-0" style="height: 10px;">
+                                                            <a class="btn btn-info dropdown-toggle text-end btn-xs slim-dropdown-btn" type="button" id="analisys-provider" data-bs-toggle="dropdown" aria-expanded="false" style="color: dodgerblue;background-color: #FFFFFF;">
+                                                                E-Redes
+                                                            </a>                                            
+                                                            <ul class="dropdown-menu slim-dropdown-menu" aria-labelledby="dropdownMenuButton"> 
+                                                                <li><a class="dropdown-item" href="#" onclick="updateDropDownProviderTitle(event, this)">E-Redes</a></li>
+                                                                <li><a class="dropdown-item" href="#" onclick="updateDropDownProviderTitle(event, this)">EoT</a></li>
+                                                            </ul>
+                                                        </div>
+                                                    </h6>  
+                                                    <div class="mb-3">
+                                                        <label for="consumo-browse-file" class="" id="labelFicheiroConsumo" style="color: dodgerblue;">Ficheiro de Consumo: </label>
+                                                        <input class="form-control form-control-sm" id="consumo-browse-file" type="file" style="color: dodgerblue;">
                                                     </div>
-                                                </h6>  
-                                                <div class="mb-3">
-                                                    <label for="consumo-browse-file" class="" style="color: dodgerblue;">Ficheiro de Consumo: </label>
-                                                    <input class="form-control form-control-sm" id="consumo-browse-file" type="file" style="color: dodgerblue;">
                                                 </div>
+
                                                 <a style="color: lightslategray;font-style: oblique;" >Período:</a>
                                                 <div class="container">
+                                                    <!-- Datas de Inicio e Fim -->
                                                     <div class="row">
-                                                        <h6 class="d-flex justify-content-between" style="color: lightslategray;">
-                                                            Data Inicial:
-                                                            <span id="analysis-periodo-start" class="text-end" style="color: darkgreen;"></span>
-                                                        </h6>
-                                                        <h6 class="d-flex justify-content-between" style="color: lightslategray;">
-                                                            Data Final:
-                                                            <span id="analysis-periodo-end" class="text-end" style="color: darkgreen;"></span>
-                                                        </h6>
-                                                    </div>                                                    
+                                                        <div class="col-md-4 d-flex justify-content-start align-items-center">
+                                                            <h6 style="color: lightslategray;">
+                                                                Data Inicial:
+                                                            </h6>
+                                                        </div>
+                                                        <div class="col" style="padding-right: 0px;padding-left: 0px;">
+                                                            <input id="analysis-periodo-start" class="form-control" type="text" placeholder="dd-mm-yyyy hh:mm" style="height: 25px;color: dodgerblue;"/>
+                                                        </div>
+                                                    </div>
+                                                    <div class="row">
+                                                        <div class="col-md-4 d-flex justify-content-start align-items-center">
+                                                            <h6 style="color: lightslategray;">
+                                                                Data Final:
+                                                            </h6>
+                                                        </div>
+                                                        <div class="col" style="padding-right: 0px;padding-left: 0px;">
+                                                            <input id="analysis-periodo-end" class="form-control" type="text" placeholder="dd-mm-yyyy hh:mm" style="height: 25px;color: dodgerblue;"/>
+                                                        </div>
+                                                    </div>
+
                                                 </div>
 
                                                 <!-- Input Contadores Inicio -->
@@ -179,14 +217,14 @@
                                                             Valores do Contador (quantidade em kWh):
                                                         </h6>
                                                         <div class="col">
-                                                            <form class="needs-validation" novalidate>
+                                                            <form class="needs-validation" novalidate id="analysisForm"></form>
                                                                 <div class="input-group input-group-sm mb-3">
                                                                     <span class="input-group-text" id="inputGroup-sizing-sm">Vazio</span>
-                                                                    <input id="analysis-contador-vazio" type="text" class="form-control" aria-label="Vazio" aria-describedby="inputGroup-sizing-sm" value="0">
+                                                                    <input id="analysis-contador-vazio" type="text" class="form-control" aria-label="Vazio" aria-describedby="inputGroup-sizing-sm" value="0" style="color: dodgerblue;" data-validate>
                                                                     <span class="input-group-text" id="inputGroup-sizing-sm">Cheio</span>
-                                                                    <input id="analysis-contador-cheio" type="text" class="form-control" aria-label="Cheio" aria-describedby="inputGroup-sizing-sm" value="0">
+                                                                    <input id="analysis-contador-cheio" type="text" class="form-control" aria-label="Cheio" aria-describedby="inputGroup-sizing-sm" value="0" style="color: dodgerblue;" data-validate>
                                                                     <span class="input-group-text" id="inputGroup-sizing-sm">Ponta</span>
-                                                                    <input id="analysis-contador-ponta" type="text" class="form-control" aria-label="Ponta" aria-describedby="inputGroup-sizing-sm" value="0">
+                                                                    <input id="analysis-contador-ponta" type="text" class="form-control" aria-label="Ponta" aria-describedby="inputGroup-sizing-sm" value="0" style="color: dodgerblue;" data-validate>
                                                                     <!-- Botão de refresh -->
                                                                     <button type="button" class="btn btn-primary btn-sm" id="analysis-contador-refresh">#</button>
                                                                     <div class="invalid-feedback">
@@ -200,7 +238,7 @@
 
                                             </div>
                                             <!-- Dados de Consumo Real -->
-                                            <div class="col-xl-4 col-lg-6 col-md-6 col-sm-12 col-12">
+                                            <div class="col-xl-4 col-lg-6 col-md-6 col-sm-12 col-12" id="blockConsumoEstimado">
                                                 <a style="color: lightslategray;font-style: oblique;" id="title_consumo_real">Consumo Real:</a>
                                                 <div class="container">
                                                     <h6 class="d-flex justify-content-between" style="color: lightslategray;">
@@ -243,7 +281,7 @@
                                             </div>
 
                                             <!-- Dados de Consumo Estimado -->
-                                            <div class="col-xl-4 col-lg-6 col-md-6 col-sm-12 col-12">
+                                            <div class="col-xl-4 col-lg-6 col-md-6 col-sm-12 col-12" >
                                                 <a style="color: lightslategray;font-style: oblique" id="title_profile">Curva Perfil "C":</a>
                                                 <div class="container">
                                                     <h6 class="d-flex justify-content-between" style="color: lightslategray;">
@@ -316,7 +354,7 @@
                     </div>
                 </div>
 
-                <div class="card overflow-hidden">
+                <div class="card overflow-hidden" id='blockChart'>
                     <div class="card-content">
                         <div class="card-body cleartfix">
                             <div class="media align-items-stretch">
@@ -389,6 +427,7 @@
                             <select class="form-control" id="config-supplier" name="Supplier" aria-label="Supplier" aria-describedby="SupplierLabel" required>
                                 <option value="coopernico-base" selected>Coopernico-Base</option>
                                 <option value="coopernico-go">Coopernico-GO</option>
+                                <option value="luzboa-spot">LuzBoa-Spot</option>
                             </select>
                         </div>
 
@@ -411,11 +450,10 @@
                             <input type="text" class="form-control" id="config-eot-key" name="EoTKey" aria-label="EoT Key" aria-describedby="config-eot-keyLabel" value="XXXXXXXXX" required>
                         </div>
 
-                        <!-- Delete this in production -->
-                        <!-- <div class="input-group mb-3">
-                            <span class="input-group-text" id="apiUrlLabel">REST API service URL:</span>
-                            <input type="url" class="form-control" id="config-apiUrl" name="apiUrl" aria-label="API URL" aria-describedby="apiUrlLabel" value="" required>
-                        </div> -->
+                        <div class="input-group mb-3">
+                            <span class="input-group-text" id="cycledayLabel">Ciclo de Leitura (dia):</span>
+                            <input type="number" class="form-control" id="config-cycle-day" name="cycle-day" min="1" max="31" aria-label="Dia Inicio" aria-describedby="cycledayLabel" value="8" required >
+                        </div>
 
                         <button type="submit" class="btn btn-outline-primary">Guardar Configuração</button>
                     </form>
@@ -448,6 +486,9 @@
 
     <script src="bootstrap-slider.min.js"></script>
 
-    <script src="app.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    
+    <script src="app.js"></script>
 </body>
 </html>
