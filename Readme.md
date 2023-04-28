@@ -7,6 +7,11 @@ It also ingest data from E-Redes energy consumption files to analyse the costs o
 A public and free to use site is available at http://energytracker.pt
 
 ## Change Log
+28/Apr/2023 :
+ - Support for different E-Redes Consumer Profiles (BTN A, BTN B, BTN C and IP);
+ - Performance improvements;
+ - Luzboa-Spot fixes;
+
 26/Apr/2023 : 
   - Beta support for Luzboa-Spot;
   - Shows current Cycle day and Supplier on "info" page;
