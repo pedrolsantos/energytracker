@@ -141,6 +141,12 @@ Energy_Time_Cycle = {
 ###### FORNECEDORES DE ENERGIA ######
 Energy_Suppliers = {'coopernico-base', 'coopernico-go', 'luzboa-spot'}
 
+###### PERFIS DE CONSUMO ######
+Energy_Profiles = ['BTN-A', 'BTN-B', 'BTN-C', 'IP', 'mP', 
+                   'UPAC-A-CV-Consumo', 'UPAC-A-CV-Injecao', 
+                   'UPAC-B-CV-Consumo', 'UPAC-B-CV-Injecao', 
+                   'UPAC-C-CV-Consumo', 'UPAC-C-CV-Injecao', 
+                   'UPAC-A-Consumo', 'UPAC-B-Consumo', 'UPAC-C-Consumo']
 
 ### CLASSES ###
 class EnergyCosts():
@@ -155,7 +161,7 @@ class EnergyCosts():
     luzboa_prices = None
 
 
-    def __init__(self, option, year, supplier, cycle_day=1, profile= 'BTN C', timezone = 'Europe/Lisbon'):
+    def __init__(self, option, year, supplier, cycle_day=1, profile= 'BTN-C', timezone = 'Europe/Lisbon'):
         self.logger = setup_logger('EnergyCosts')
         dst_start, dst_end = self.get_dst_dates (year, timezone)
         self.dst_start = dst_start
@@ -681,7 +687,7 @@ class EnergyCosts():
         end_date = pd.to_datetime(end_date)
 
         # Filter the master_table for the period
-        working_table = self.master_prices_table.loc[start_date:end_date] #.copy()
+        working_table = self.master_prices_table.loc[start_date:end_date].copy()
 
         # Calculate the price for each row
         working_table['Price'] = working_table.apply(lambda row: self.calc_coopernico_price (row['OMIE Price']*1000 , fator_perdas_energia= row['Loss'], go=0), axis=1)
@@ -727,8 +733,7 @@ class EnergyCosts():
         working_table['Cost'] = working_table['Cost_cheio'].fillna(0) + working_table['Cost_ponta'].fillna(0) + working_table['Cost_vazio'].fillna(0)
         
         # Drop the columns that are not needed to be returned
-        columns = ['BTN A', 'BTN B', 'BTN C', 'IP']
-        col_subset = [col for col in columns if col != self.profile]
+        col_subset = [col for col in Energy_Profiles if col != self.profile]
         col_subset += ['Cost_vazio', 'Cost_cheio', 'Cost_ponta', 'Vazio', 'Cheio', 'Ponta']
         working_table.drop(columns= col_subset, inplace=True)
         

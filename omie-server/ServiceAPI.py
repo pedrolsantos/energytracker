@@ -16,7 +16,7 @@ from flask_cors import CORS
 
 from logger_config import setup_logger, setBasePath
 
-from Calculations import EnergyCosts, Energy_Time_Cycle, Energy_Suppliers
+from Calculations import EnergyCosts, Energy_Time_Cycle, Energy_Suppliers, Energy_Profiles
 from Ingestion import DataIngestion
 
 ###################  FOLDERS  ############################
@@ -101,7 +101,7 @@ def initialize_app():
     
     data_ingest.download_OMIE_data()
     
-    energy_cost = EnergyCosts('Tri-Horario-Semanal', 2023, 'luzboa-spot', 1, 'BTN C' )
+    energy_cost = EnergyCosts('Tri-Horario-Semanal', 2023, 'luzboa-spot', 1, 'BTN-C' )
     data_ingest.master_prices_table = energy_cost.calc_master_table (data_ingest.profile_data, data_ingest.profile_loss_data, data_ingest.omie_data, 'Price_PT')
     energy_cost.setMasterPrices(data_ingest.master_prices_table)
 
@@ -110,6 +110,9 @@ def initialize_app():
     end_date    = datetime.datetime( 2023, 3, 20, 23, 59, 59)
 
     #dff = energy_cost.get_luzboa_prices_for_period (start_date, end_date)
+    #profiles_global = data_ingest.load_EREDES_GlobalProfiles(GLOBAL_PROFILE_FILE)
+    oo = 1
+
     
 
 
@@ -190,10 +193,17 @@ def upload_energy_file():
         return jsonify({'error': 'Invalid provider'}), 400
 
     arg_profile = request.args.get('profile')
-    if (not arg_profile) or (arg_profile not in ['BTN-A', 'BTN-B', 'BTN-C', 'IP']) :
-        app.logger.error ("get_current_price: Invalid profile type: " + str(arg_profile))
+    if (not arg_profile) or (arg_profile not in Energy_Profiles) :
+        app.logger.error ("upload_energy_file: Invalid profile type: " + str(arg_profile))
         return jsonify({'error': 'Invalid profile type'}), 400
-    arg_profile = arg_profile.replace('-', ' ')
+    # arg_profile = arg_profile.replace('-', ' ')
+
+    arg_sampling = request.args.get('resampling')
+    if arg_sampling is None or arg_sampling == '':
+        arg_sampling = ''
+    elif arg_sampling is not None and arg_sampling not in ['1H', '1D', '1W']:
+        app.logger.error("upload_energy_file: Invalid sampling option: " + str(arg_sampling))
+        return jsonify({'error': 'Invalid sampling option'}), 400
 
     arg_cycle_day = request.args.get('cycle_day')
     if (not arg_cycle_day) or (not arg_cycle_day.isdigit()) or (int(arg_cycle_day) < 0) or (int(arg_cycle_day) > 31) :
@@ -234,7 +244,7 @@ def upload_energy_file():
     divisionFactor = 1
     if (str_provider == 'E-Redes'):
         # Load the file into a DataFrame
-        dfConsumo = data_ingest.load_ERedes_Consumption_data (filepath)
+        dfConsumo = data_ingest.load_ERedes_Consumption_data (filepath, arg_sampling)
         divisionFactor = 4 
     elif (str_provider == 'EoT'):
         # Load the file into a DataFrame
@@ -310,10 +320,10 @@ def get_price_for_date():
         laghour = int(arg_lagHour)
 
     arg_profile = request.args.get('profile')
-    if (not arg_profile) or (arg_profile not in ['BTN-A', 'BTN-B', 'BTN-C', 'IP']) :
+    if (not arg_profile) or (arg_profile not in Energy_Profiles) :
         app.logger.error ("get_current_price: Invalid profile type: " + str(arg_profile))
         return jsonify({'error': 'Invalid profile type'}), 400
-    arg_profile = arg_profile.replace('-', ' ')
+    # arg_profile = arg_profile.replace('-', ' ')
 
 
     # Initialize the EnergyCosts class
@@ -368,10 +378,10 @@ def get_current_price():
     cycle_day = int(arg_cycle_day)
 
     arg_profile = request.args.get('profile')
-    if (not arg_profile) or (arg_profile not in ['BTN-A', 'BTN-B', 'BTN-C', 'IP']) :
+    if (not arg_profile) or (arg_profile not in Energy_Profiles) :
         app.logger.error ("get_current_price: Invalid profile type: " + str(arg_profile))
         return jsonify({'error': 'Invalid profile type'}), 400
-    arg_profile = arg_profile.replace('-', ' ')
+    # arg_profile = arg_profile.replace('-', ' ')
 
     arg_lagHour = request.args.get('lagHour')
     laghour = 1
@@ -444,10 +454,10 @@ def getOMIEPricesForPeriod ():
     cycle_day = int(arg_cycle_day)    
 
     arg_profile = request.args.get('profile')
-    if (not arg_profile) or (arg_profile not in ['BTN-A', 'BTN-B', 'BTN-C', 'IP']) :
+    if (not arg_profile) or (arg_profile not in Energy_Profiles) :
         app.logger.error ("getOMIEPricesForPeriod: Invalid profile type: " + str(arg_profile))
         return jsonify({'error': 'Invalid profile type'}), 400
-    arg_profile = arg_profile.replace('-', ' ')
+    # arg_profile = arg_profile.replace('-', ' ')
 
     # Initialize the EnergyCosts class
     energy_cost = EnergyCosts(str_tarifario, int(str_year), str_supplier, cycle_day, arg_profile )
@@ -535,10 +545,10 @@ def estimate_profile_cost():
     cycle_day = int(arg_cycle_day)
 
     arg_profile = request.args.get('profile')
-    if (not arg_profile) or (arg_profile not in ['BTN-A', 'BTN-B', 'BTN-C', 'IP']) :
+    if (not arg_profile) or (arg_profile not in Energy_Profiles) :
         app.logger.error ("getEstimationProfile: Invalid profile type: " + str(arg_profile))
         return jsonify({'error': 'Invalid profile type'}), 400
-    arg_profile = arg_profile.replace('-', ' ')
+    # arg_profile = arg_profile.replace('-', ' ')
 
     # Initialize the EnergyCosts class
     energy_cost = EnergyCosts(str_tarifario, int(str_year), str_supplier, cycle_day, arg_profile )
@@ -631,10 +641,10 @@ def estimate_profile_cost_manual():
     cycle_day = int(arg_cycle_day)    
 
     arg_profile = request.args.get('profile')
-    if (not arg_profile) or (arg_profile not in ['BTN-A', 'BTN-B', 'BTN-C', 'IP']) :
+    if (not arg_profile) or (arg_profile not in Energy_Profiles) :
         app.logger.error ("getEstimationProfileManual: Invalid profile type: " + str(arg_profile))
         return jsonify({'error': 'Invalid profile type'}), 400
-    arg_profile = arg_profile.replace('-', ' ')
+    # arg_profile = arg_profile.replace('-', ' ')
 
     # Initialize the EnergyCosts class
     energy_cost = EnergyCosts(str_tarifario, int(str_year), str_supplier, cycle_day, arg_profile )
@@ -665,9 +675,12 @@ def estimate_profile_cost_manual():
         app.logger.error("Invalid date range")
         return jsonify({'error': 'Invalid date range'}), 400
     
-    if start_date < data_ingest.omie_data.index.min() or end_date > data_ingest.omie_data.index.max():
+    if start_date < data_ingest.omie_data.index.min() :
         app.logger.error("Invalid date range on OMIE data")
         return jsonify({'error': 'Invalid date range on OMIE data'}), 400
+
+    if end_date > data_ingest.omie_data.index.max():
+        end_date = data_ingest.omie_data.index.max()
 
     total_vazio = request.args.get('total_vazio')
     if (not total_vazio):
@@ -765,10 +778,10 @@ def get_eot_data ():
         return jsonify({'error': 'Invalid Call to EOT'}), 400
 
     arg_profile = request.args.get('profile')
-    if (not arg_profile) or (arg_profile not in ['BTN-A', 'BTN-B', 'BTN-C', 'IP']) :
+    if (not arg_profile) or (arg_profile not in Energy_Profiles) :
         app.logger.error ("getEOTData: Invalid profile type: " + str(arg_profile))
         return jsonify({'error': 'Invalid profile type'}), 400
-    arg_profile = arg_profile.replace('-', ' ')
+    # arg_profile = arg_profile.replace('-', ' ')
 
     date_power = response['channels'][0]['feeds'][0]['created_at']
     power = response['channels'][0]['feeds'][0]['value']
@@ -866,10 +879,10 @@ def getProfilePeriod():
         return jsonify({'error': 'Invalid request data'}), 400
 
     arg_profile = request.args.get('profile')
-    if (not arg_profile) or (arg_profile not in ['BTN-A', 'BTN-B', 'BTN-C', 'IP']) :
+    if (not arg_profile) or (arg_profile not in Energy_Profiles) :
         app.logger.error ("getProfilePeriod: Invalid profile type: " + str(arg_profile))
         return jsonify({'error': 'Invalid profile type'}), 400
-    arg_profile = arg_profile.replace('-', ' ')
+    # arg_profile = arg_profile.replace('-', ' ')
 
     try:
         start_date = datetime.datetime.strptime(start_date, '%Y-%m-%d-%H:%M')
@@ -903,11 +916,12 @@ OMIE_PATH = os.path.join(BASE_PATH, 'OMIE_Data/')
 CONSUMOS_PATH = os.path.join(BASE_PATH, 'Consumos/')
 EREDES_PATH = os.path.join(BASE_PATH, 'ERedes_profiles/')
 
-CONSUMO_PROFILE_FILE    = os.path.join(EREDES_PATH, 'E-REDES_Perfil_Consumo_2023_mod.xlsx')
+GLOBAL_PROFILE_FILE     = os.path.join(EREDES_PATH, 'ERSE_perfis_de_consumo_2023_especial.xlsx')
+#CONSUMO_PROFILE_FILE    = os.path.join(EREDES_PATH, 'E-REDES_Perfil_Consumo_2023_mod.xlsx')
 LOSS_PROFILE_FILE       = os.path.join(EREDES_PATH, 'E-REDES_Perfil_Perdas_2023_mod.xlsx')
 
 
-data_ingest = DataIngestion(OMIE_PATH, CONSUMO_PROFILE_FILE, LOSS_PROFILE_FILE )
+data_ingest = DataIngestion(OMIE_PATH, GLOBAL_PROFILE_FILE, LOSS_PROFILE_FILE )
 initialize_app()
 
 if __name__ == '__main__':

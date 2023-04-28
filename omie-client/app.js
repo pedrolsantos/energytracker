@@ -74,8 +74,9 @@ class ApiService {
         const year = CONFIG.year;
         const cycle_day = CONFIG.cycle_day;
         const profile = CONFIG.profile;
+        const resample = sample; //testing
 
-        const url = `${this.baseUrl}/uploadEnergyFile?supplier=${supplier}&tariff=${tariff}&year=${year}&cycle_day=${cycle_day}&profile=${profile}&format=${format}&provider=${provider}`;
+        const url = `${this.baseUrl}/uploadEnergyFile?supplier=${supplier}&tariff=${tariff}&year=${year}&cycle_day=${cycle_day}&profile=${profile}&format=${format}&provider=${provider}&resampling=${resample}`;
     
         const formData = new FormData();
         formData.append('file', file);
@@ -1204,6 +1205,32 @@ document.addEventListener('DOMContentLoaded', () => {
         priceChartAnalysis.pan ({x: 100}, undefined, 'default');
     });
     
+    document.getElementById("btn-resample-15m").addEventListener("click", function() {
+        sample = '';
+        
+        if (file) {
+            uploadFile (file)
+        }        
+    });    
+    document.getElementById("btn-resample-1h").addEventListener("click", function() {
+        sample = '1H';
+        if (file) {
+            uploadFile (file)
+        }        
+    });
+    document.getElementById("btn-resample-1d").addEventListener("click", function() {
+        sample = '1D';
+        if (file) {
+            uploadFile (file)
+        }        
+    });
+    document.getElementById("btn-resample-1w").addEventListener("click", function() {
+        sample = '1W';
+        if (file) {
+            uploadFile (file)
+        }        
+    });    
+
     const inputIds = ['analysis-contador-vazio', 'analysis-contador-cheio', 'analysis-contador-ponta'];
     for (let id of inputIds) {
         const input = document.getElementById(id);
@@ -1424,12 +1451,21 @@ function handleAnaliseRefreshContador (event){
     priceTrackerApp.fetchProfileDataBasedOnManual(minmaxdate, inputVazio, inputCheio, inputPonta,)
 }
 
+var file = null;
+var sample = '';
+
 async function handleFileInputChange(event) {
     if (!event.target.files || event.target.files.length === 0) {
         return;
     }
 
-    const file = event.target.files[0];
+    file = event.target.files[0];
+    if (file) {
+        uploadFile (file)
+    }
+}
+
+async function uploadFile (file){
     if (file) {
         try {
             document.getElementById('title_consumo_real').textContent = "Consumo Real : ..... Em Processamento ....";
@@ -1448,12 +1484,12 @@ async function handleFileInputChange(event) {
             // Setup Slider
             priceTrackerApp.setupSliderForData(priceChartAnalysis, response);
             hideAlert();
-
         } catch (error) {
             showAlert('Erro no processamento do ficheiro. Verifique se está a usar o ficheiro correto...');
             console.error('Error uploading file:', error);
         }
     }
+
 }
 
 function updateDropDownProviderTitle(event, option) {
@@ -1487,4 +1523,10 @@ function validateInput(input) {
         input.classList.remove("is-invalid");
         return true;
     }
+}
+
+function updateDropDownTariffTitle(event, option) {
+    event.preventDefault();
+    const dropdownMenuButton = document.getElementById("current-tarifario");
+    dropdownMenuButton.innerHTML = option.innerHTML;
 }

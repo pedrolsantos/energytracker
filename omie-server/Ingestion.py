@@ -22,7 +22,8 @@ class DataIngestion():
         self.logger = setup_logger('DataIngestion')
         self.omie_folder = folder
         self.omie_data = self.load_OMIE_data(self.omie_folder)
-        self.profile_data = self.load_EREDES_ConsumptionProfiles (consumption_profile_data)
+        #self.profile_data = self.load_EREDES_ConsumptionProfiles (consumption_profile_data)
+        self.profile_data = self.load_EREDES_GlobalProfiles (consumption_profile_data)
         self.profile_loss_data = self.load_EREDES_LossesProfiles (loss_profile_data)
 
     def load_OMIE_data(self, folder ):
@@ -106,7 +107,7 @@ class DataIngestion():
         status = {'status_code': response.status_code, 'filename': filename, 'size': size, 'saved': saved}
         return status
 
-    def load_ERedes_Consumption_data (self, filename):
+    def load_ERedes_Consumption_data (self, filename, sampling=''):
         # Load the E-Redes Consumption data
         df = pd.read_excel(filename, sheet_name='Leituras', header=None)
 
@@ -135,6 +136,9 @@ class DataIngestion():
         df.set_index('Date', inplace=True)
         df.drop(columns=['Data', 'Hora'], inplace=True)
         df = df.sort_index()
+
+        # Resample the data to hourly frequency
+        df = df.resample(sampling).sum() if sampling else df
 
         return df
 
@@ -188,6 +192,36 @@ class DataIngestion():
 
         return df
     
+    def load_EREDES_GlobalProfiles (self, filename):
+        # ERSE_perfis_de_consumo_2023_especial.xlsx
+        # Load the E-Redes Consumption Profiles
+
+        self.logger.info (f'Loading E-Redes Consumption Profile file= {filename}')
+
+        df = pd.read_excel(filename, sheet_name='2023', skiprows=7, header=None)
+        df.columns = ['Data', 'Dia', 'Hora', 'RESP', 'BTN-A', 'BTN-B', 'BTN-C', 'IP', 'mP', 'UPAC-A-CV-Consumo', 'UPAC-A-CV-Injecao', 'UPAC-B-CV-Consumo', 'UPAC-B-CV-Injecao', 'UPAC-C-CV-Consumo', 'UPAC-C-CV-Injecao', 'UPAC-A-Consumo', 'UPAC-B-Consumo', 'UPAC-C-Consumo']
+
+        # Convert the columns to numeric values
+        df[['RESP', 'BTN-A', 'BTN-B', 'BTN-C', 'IP', 'mP', 'UPAC-A-CV-Consumo', 'UPAC-A-CV-Injecao', 'UPAC-B-CV-Consumo', 'UPAC-B-CV-Injecao', 'UPAC-C-CV-Consumo', 'UPAC-C-CV-Injecao', 'UPAC-A-Consumo', 'UPAC-B-Consumo', 'UPAC-C-Consumo']] = df[['RESP', 'BTN-A', 'BTN-B', 'BTN-C', 'IP', 'mP', 'UPAC-A-CV-Consumo', 'UPAC-A-CV-Injecao', 'UPAC-B-CV-Consumo', 'UPAC-B-CV-Injecao', 'UPAC-C-CV-Consumo', 'UPAC-C-CV-Injecao', 'UPAC-A-Consumo', 'UPAC-B-Consumo', 'UPAC-C-Consumo']].apply(pd.to_numeric)
+
+        # Convert the 'Hora' column to the 'hh:mm:ss' format
+        df['Hora'] = pd.to_timedelta( df['Hora'].apply(lambda x: x + ':00' if len(x) == 5 else '00:00:00' if x== '24:00' else x) )
+
+        # Subtract 15 minutes from each value in the 'Hora' column
+        df['Hora'] = df['Hora'] - pd.to_timedelta('00:15:00')
+
+        # Create the "Date" column by adding "Data" and "Hora"
+        df['Date'] = df['Data'] + df['Hora']
+
+        # Set the "Date" column as the index
+        df.set_index('Date', inplace=True)
+        df = df.sort_index()
+
+        # Drop the unnecessary columns
+        df.drop(columns=['Data', 'Dia', 'Hora', 'RESP'], inplace=True)
+
+        return df
+
     def load_EREDES_LossesProfiles (self, filename):
         # Load the E-Redes Losses Profiles
         

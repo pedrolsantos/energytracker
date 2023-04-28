@@ -8,7 +8,8 @@ A public and free to use site is available at http://energytracker.pt
 
 ## Change Log
 28/Apr/2023 :
- - Support for different E-Redes Consumer Profiles (BTN A, BTN B, BTN C and IP);
+ - Support for different E-Redes Consumer Profiles (BTN A, BTN B, BTN C, IP and UPAC);
+ - Resampling of data in "Analysis" to consider 15min, 1 hour, 1 day or 1 week;
  - Performance improvements;
  - Luzboa-Spot fixes;
 
