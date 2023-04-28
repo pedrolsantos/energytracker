@@ -4,6 +4,7 @@
 
 # Rest API
 import os
+
 import uuid
 import pandas as pd
 import datetime 
@@ -100,8 +101,17 @@ def initialize_app():
     
     data_ingest.download_OMIE_data()
     
-    energy_cost = EnergyCosts('Tri-Horario-Semanal', 2023, 'luzboa-spot', 1 )
-    data_ingest.luzBoa_data = energy_cost.calc_luzboa_price_table(data_ingest.omie_data, data_ingest.profile_loss_data)
+    energy_cost = EnergyCosts('Tri-Horario-Semanal', 2023, 'luzboa-spot', 1, 'BTN C' )
+    data_ingest.master_prices_table = energy_cost.calc_master_table (data_ingest.profile_data, data_ingest.profile_loss_data, data_ingest.omie_data, 'Price_PT')
+    energy_cost.setMasterPrices(data_ingest.master_prices_table)
+
+    #### testing
+    start_date  = datetime.datetime( 2023, 2, 21, 0,0,0)
+    end_date    = datetime.datetime( 2023, 3, 20, 23, 59, 59)
+
+    #dff = energy_cost.get_luzboa_prices_for_period (start_date, end_date)
+    
+
 
 
 ############## API REST ################################# 
@@ -179,6 +189,12 @@ def upload_energy_file():
         app.logger.error('upload_energy_file: Invalid provider')
         return jsonify({'error': 'Invalid provider'}), 400
 
+    arg_profile = request.args.get('profile')
+    if (not arg_profile) or (arg_profile not in ['BTN-A', 'BTN-B', 'BTN-C', 'IP']) :
+        app.logger.error ("get_current_price: Invalid profile type: " + str(arg_profile))
+        return jsonify({'error': 'Invalid profile type'}), 400
+    arg_profile = arg_profile.replace('-', ' ')
+
     arg_cycle_day = request.args.get('cycle_day')
     if (not arg_cycle_day) or (not arg_cycle_day.isdigit()) or (int(arg_cycle_day) < 0) or (int(arg_cycle_day) > 31) :
         app.logger.error ("upload_energy_file: Invalid cycle_day" + arg_cycle_day)
@@ -212,8 +228,8 @@ def upload_energy_file():
         file.save(filepath)
 
     # Initialize the EnergyCosts class
-    energy_cost = EnergyCosts(str_tarifario, int(str_year) , str_supplier, cycle_day)
-    energy_cost.setLuzboaPrices (data_ingest.luzBoa_data)
+    energy_cost = EnergyCosts(str_tarifario, int(str_year) , str_supplier, cycle_day, arg_profile)
+    energy_cost.setMasterPrices (data_ingest.master_prices_table)
     
     divisionFactor = 1
     if (str_provider == 'E-Redes'):
@@ -293,15 +309,22 @@ def get_price_for_date():
     if (arg_lagHour)  :
         laghour = int(arg_lagHour)
 
+    arg_profile = request.args.get('profile')
+    if (not arg_profile) or (arg_profile not in ['BTN-A', 'BTN-B', 'BTN-C', 'IP']) :
+        app.logger.error ("get_current_price: Invalid profile type: " + str(arg_profile))
+        return jsonify({'error': 'Invalid profile type'}), 400
+    arg_profile = arg_profile.replace('-', ' ')
+
+
     # Initialize the EnergyCosts class
-    energy_cost = EnergyCosts(str_tarifario, int(str_year), str_supplier, cycle_day )
-    energy_cost.setLuzboaPrices (data_ingest.luzBoa_data)
+    energy_cost = EnergyCosts(str_tarifario, int(str_year), str_supplier, cycle_day, arg_profile )
+    energy_cost.setMasterPrices (data_ingest.master_prices_table)
 
     # Check if OMIE data is updated
     ret = check_and_download_OMIE ()
     if (ret):
         # Recalculate the LuzBoa price table
-        data_ingest.luzBoa_data = energy_cost.calc_luzboa_price_table (data_ingest.omie_data, data_ingest.profile_loss_data)
+        data_ingest.master_prices_table = energy_cost.calc_master_table (data_ingest.profile_data, data_ingest.profile_loss_data, data_ingest.omie_data)
 
     date = datetime.datetime.strptime(str_date, '%Y-%m-%d-%H:%M')
     omie_price, omie_ret_data  = energy_cost.get_omie_price_for_date (data_ingest.omie_data, date, lagHour=laghour)
@@ -344,21 +367,27 @@ def get_current_price():
         return jsonify({'error': 'Invalid cycle_day'}), 400
     cycle_day = int(arg_cycle_day)
 
+    arg_profile = request.args.get('profile')
+    if (not arg_profile) or (arg_profile not in ['BTN-A', 'BTN-B', 'BTN-C', 'IP']) :
+        app.logger.error ("get_current_price: Invalid profile type: " + str(arg_profile))
+        return jsonify({'error': 'Invalid profile type'}), 400
+    arg_profile = arg_profile.replace('-', ' ')
+
     arg_lagHour = request.args.get('lagHour')
     laghour = 1
     if (arg_lagHour)  :
         laghour = int(arg_lagHour)
 
     # Initialize the EnergyCosts class
-    energy_cost = EnergyCosts(str_tarifario, int(str_year), str_supplier, cycle_day )
-    energy_cost.setLuzboaPrices (data_ingest.luzBoa_data)
+    energy_cost = EnergyCosts(str_tarifario, int(str_year), str_supplier, cycle_day, arg_profile )
+    energy_cost.setMasterPrices (data_ingest.master_prices_table)
 
     # Check if OMIE data is updated
     ret = check_and_download_OMIE ()
     if (ret):
         # Recalculate the LuzBoa price table
-        data_ingest.luzBoa_data = energy_cost.calc_luzboa_price_table (data_ingest.omie_data, data_ingest.profile_loss_data)
-        energy_cost.setLuzboaPrices (data_ingest.luzBoa_data)
+        data_ingest.master_prices_table = energy_cost.calc_master_table (data_ingest.profile_data, data_ingest.profile_loss_data, data_ingest.omie_data)
+        energy_cost.setMasterPrices (data_ingest.master_prices_table)
 
     date = datetime.datetime.now() 
     if date > data_ingest.omie_data.index.max():
@@ -367,6 +396,10 @@ def get_current_price():
     
     omie_price, omie_ret_data = energy_cost.get_omie_price_for_date (data_ingest.omie_data, date, lagHour=laghour )
     tar_price, tar_period = energy_cost.get_price_tar (date)
+    
+    if ( 'luzboa' in str_supplier):
+        energy_cost.update_luzboa_cache_prices ()
+
     price, price_data = energy_cost.calc_energy_price (date, 1, data_ingest.omie_data, data_ingest.profile_loss_data, lagHour=laghour )
 
     price_data['Cycle Period']['start'] = price_data['Cycle Period']['start'].strftime('%Y-%m-%d %H:%M')
@@ -410,16 +443,22 @@ def getOMIEPricesForPeriod ():
         return jsonify({'error': 'Invalid cycle_day'}), 400
     cycle_day = int(arg_cycle_day)    
 
+    arg_profile = request.args.get('profile')
+    if (not arg_profile) or (arg_profile not in ['BTN-A', 'BTN-B', 'BTN-C', 'IP']) :
+        app.logger.error ("getOMIEPricesForPeriod: Invalid profile type: " + str(arg_profile))
+        return jsonify({'error': 'Invalid profile type'}), 400
+    arg_profile = arg_profile.replace('-', ' ')
+
     # Initialize the EnergyCosts class
-    energy_cost = EnergyCosts(str_tarifario, int(str_year), str_supplier, cycle_day )
-    energy_cost.setLuzboaPrices (data_ingest.luzBoa_data)
+    energy_cost = EnergyCosts(str_tarifario, int(str_year), str_supplier, cycle_day, arg_profile )
+    energy_cost.setMasterPrices (data_ingest.master_prices_table)
 
     # Check if OMIE data is updated
     ret = check_and_download_OMIE ()
     if (ret):
         # Recalculate the LuzBoa price table
-        data_ingest.luzBoa_data = energy_cost.calc_luzboa_price_table (data_ingest.omie_data, data_ingest.profile_loss_data)
-        energy_cost.setLuzboaPrices (data_ingest.luzBoa_data)
+        data_ingest.master_prices_table = energy_cost.calc_master_table (data_ingest.profile_data, data_ingest.profile_loss_data, data_ingest.omie_data)
+        energy_cost.setMasterPrices (data_ingest.master_prices_table)
 
     start_date = request.args.get('start_date')
     end_date = request.args.get('end_date')
@@ -495,16 +534,22 @@ def estimate_profile_cost():
         return jsonify({'error': 'Invalid cycle_day'}), 400
     cycle_day = int(arg_cycle_day)
 
+    arg_profile = request.args.get('profile')
+    if (not arg_profile) or (arg_profile not in ['BTN-A', 'BTN-B', 'BTN-C', 'IP']) :
+        app.logger.error ("getEstimationProfile: Invalid profile type: " + str(arg_profile))
+        return jsonify({'error': 'Invalid profile type'}), 400
+    arg_profile = arg_profile.replace('-', ' ')
+
     # Initialize the EnergyCosts class
-    energy_cost = EnergyCosts(str_tarifario, int(str_year), str_supplier, cycle_day )
-    energy_cost.setLuzboaPrices (data_ingest.luzBoa_data)
+    energy_cost = EnergyCosts(str_tarifario, int(str_year), str_supplier, cycle_day, arg_profile )
+    energy_cost.setMasterPrices (data_ingest.master_prices_table)
 
     # Check if OMIE data is updated
     ret = check_and_download_OMIE ()
     if (ret):
         # Recalculate the LuzBoa price table
-        data_ingest.luzBoa_data = energy_cost.calc_luzboa_price_table (data_ingest.omie_data, data_ingest.profile_loss_data)
-        energy_cost.setLuzboaPrices (data_ingest.luzBoa_data)
+        data_ingest.master_prices_table = energy_cost.calc_master_table (data_ingest.profile_data, data_ingest.profile_loss_data, data_ingest.omie_data)
+        energy_cost.setMasterPrices (data_ingest.master_prices_table)
 
     start_date = request.args.get('start_date')
     end_date = request.args.get('end_date')
@@ -585,16 +630,22 @@ def estimate_profile_cost_manual():
         return jsonify({'error': 'Invalid cycle_day'}), 400
     cycle_day = int(arg_cycle_day)    
 
+    arg_profile = request.args.get('profile')
+    if (not arg_profile) or (arg_profile not in ['BTN-A', 'BTN-B', 'BTN-C', 'IP']) :
+        app.logger.error ("getEstimationProfileManual: Invalid profile type: " + str(arg_profile))
+        return jsonify({'error': 'Invalid profile type'}), 400
+    arg_profile = arg_profile.replace('-', ' ')
+
     # Initialize the EnergyCosts class
-    energy_cost = EnergyCosts(str_tarifario, int(str_year), str_supplier, cycle_day )
-    energy_cost.setLuzboaPrices (data_ingest.luzBoa_data)
+    energy_cost = EnergyCosts(str_tarifario, int(str_year), str_supplier, cycle_day, arg_profile )
+    energy_cost.setMasterPrices (data_ingest.master_prices_table)
 
     # Check if OMIE data is updated
     ret = check_and_download_OMIE ()
     if (ret):
         # Recalculate the LuzBoa price table
-        data_ingest.luzBoa_data = energy_cost.calc_luzboa_price_table (data_ingest.omie_data, data_ingest.profile_loss_data)
-        energy_cost.setLuzboaPrices (data_ingest.luzBoa_data)
+        data_ingest.master_prices_table = energy_cost.calc_master_table (data_ingest.profile_data, data_ingest.profile_loss_data, data_ingest.omie_data)
+        energy_cost.setMasterPrices (data_ingest.master_prices_table)
 
     start_date = request.args.get('start_date')
     end_date = request.args.get('end_date')
@@ -643,8 +694,15 @@ def estimate_profile_cost_manual():
     if (arg_lagHour):
         laghour = int(arg_lagHour)
     
-    response = energy_cost.get_profile_estimation_manual (data_ingest.profile_data, data_ingest.omie_data, data_ingest.profile_loss_data, start_date, end_date, total_vazio, total_cheio, total_ponta, laghour, records)
-    
+    response = ''
+    if ("coopernico" in str_supplier):
+        response = energy_cost.calc_coopernico_costs (start_date, end_date, total_vazio, total_cheio, total_ponta, laghour, records)
+    elif ("luzboa" in str_supplier):
+        response = energy_cost.calc_luzboa_costs (start_date, end_date, total_vazio, total_cheio, total_ponta, laghour, records)
+    else:
+        app.logger.error("Invalid Energy Supplier")
+        return jsonify({'error': 'Invalid Energy Supplier'}), 400    
+
     app.logger.info("Service Done: getEstimationProfileManual")
     return jsonify({
         'Start_date' : response['Start_date'],
@@ -706,12 +764,18 @@ def get_eot_data ():
         app.logger.error("Error calling EOT API")
         return jsonify({'error': 'Invalid Call to EOT'}), 400
 
+    arg_profile = request.args.get('profile')
+    if (not arg_profile) or (arg_profile not in ['BTN-A', 'BTN-B', 'BTN-C', 'IP']) :
+        app.logger.error ("getEOTData: Invalid profile type: " + str(arg_profile))
+        return jsonify({'error': 'Invalid profile type'}), 400
+    arg_profile = arg_profile.replace('-', ' ')
+
     date_power = response['channels'][0]['feeds'][0]['created_at']
     power = response['channels'][0]['feeds'][0]['value']
 
     # Initialize the EnergyCosts class
-    energy_cost = EnergyCosts(str_tarifario, int(str_year) , str_supplier, cycle_day)
-    energy_cost.setLuzboaPrices (data_ingest.luzBoa_data)
+    energy_cost = EnergyCosts(str_tarifario, int(str_year) , str_supplier, cycle_day, arg_profile)
+    energy_cost.setMasterPrices (data_ingest.master_prices_table)
 
     # find the number of 15 min periods since midnight
     count_periods = energy_cost.count_15min_periods_today()
@@ -801,6 +865,12 @@ def getProfilePeriod():
         app.logger.error("getProfilePeriod: Invalid request data")
         return jsonify({'error': 'Invalid request data'}), 400
 
+    arg_profile = request.args.get('profile')
+    if (not arg_profile) or (arg_profile not in ['BTN-A', 'BTN-B', 'BTN-C', 'IP']) :
+        app.logger.error ("getProfilePeriod: Invalid profile type: " + str(arg_profile))
+        return jsonify({'error': 'Invalid profile type'}), 400
+    arg_profile = arg_profile.replace('-', ' ')
+
     try:
         start_date = datetime.datetime.strptime(start_date, '%Y-%m-%d-%H:%M')
         end_date = datetime.datetime.strptime(end_date, '%Y-%m-%d-%H:%M')
@@ -813,8 +883,8 @@ def getProfilePeriod():
         return jsonify({'error': 'Invalid date range'}), 400
 
     # Initialize the EnergyCosts class
-    energy_cost = EnergyCosts(str_tarifario, int(str_year) , str_supplier, cycle_day)
-    energy_cost.setLuzboaPrices (data_ingest.luzBoa_data)
+    energy_cost = EnergyCosts(str_tarifario, int(str_year) , str_supplier, cycle_day, arg_profile)
+    energy_cost.setMasterPrices (data_ingest.master_prices_table)
 
     records = energy_cost.get_profile_by_period(data_ingest.profile_data, start_date, end_date)
     

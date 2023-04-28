@@ -168,7 +168,7 @@ class DataIngestion():
         df.columns = ['Data', 'Dia', 'Hora', 'BTN A', 'BTN B', 'BTN C', 'IP']
 
         # Convert the columns to numeric values
-        df[['BTN A', 'BTN B', 'BTN C']] = df[['BTN A', 'BTN B', 'BTN C']].apply(pd.to_numeric)
+        df[['BTN A', 'BTN B', 'BTN C', 'IP']] = df[['BTN A', 'BTN B', 'BTN C', 'IP']].apply(pd.to_numeric)
 
         # Convert the 'Hora' column to the 'hh:mm:ss' format
         df['Hora'] = pd.to_timedelta( df['Hora'].apply(lambda x: x + ':00' if len(x) == 5 else '00:00:00' if x== '24:00' else x) )

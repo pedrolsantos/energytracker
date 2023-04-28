@@ -74,6 +74,10 @@
                                                     <td class="text-right text-black-50 text-uppercase">Ciclo de Leitura:</td>
                                                     <td class="text-left text-primary" id="current-cycle_period"> --- </td>
                                                 </tr>
+                                                <tr>
+                                                    <td class="text-right text-black-50 text-uppercase">Perfil Consumo:</td>
+                                                    <td class="text-left text-primary" id="current-profile"> --- </td>
+                                                </tr>                                                
                                             </tbody>
                                         </table>
                                     </div>
@@ -282,7 +286,7 @@
 
                                             <!-- Dados de Consumo Estimado -->
                                             <div class="col-xl-4 col-lg-6 col-md-6 col-sm-12 col-12" >
-                                                <a style="color: lightslategray;font-style: oblique" id="title_profile">Curva Perfil "C":</a>
+                                                <a style="color: lightslategray;font-style: oblique" id="title_profile">Curva Perfil:</a>
                                                 <div class="container">
                                                     <h6 class="d-flex justify-content-between" style="color: lightslategray;">
                                                         Total Vazio:
@@ -410,12 +414,17 @@
                     <h2>Configuração:</h2>
                     <form id="configForm">
                         <div class="input-group mb-3">
+                            <span class="input-group-text" id="yearLabel">Ano:</span>
+                            <input type="number" class="form-control" id="config-year" name="year" min="1900" max="2099" step="1" aria-label="Year" aria-describedby="yearLabel" value="2023" required>
+                        </div>
+
+                        <div class="input-group mb-3">
                             <span class="input-group-text" id="hoursLabel">Horas do gráfico:</span>
                             <input type="number" class="form-control" id="config-hours" name="hours" min="1" max="23" aria-label="Hours" aria-describedby="hoursLabel" value="12" required >
                         </div>
 
                         <div class="input-group mb-3">
-                            <span class="input-group-text" id="perfilCLabel">Curva do Perfil C no Gráfico:</span>
+                            <span class="input-group-text" id="perfilCLabel">Curva Perfil Consumo no Gráfico:</span>
                             <select class="form-control" id="config-perfil" name="PerfilC" aria-label="Supplier" aria-describedby="perfilCLabel" required>
                                 <option value="True" selected>Sim</option>
                                 <option value="False">Não</option>
@@ -442,17 +451,28 @@
                             </select>
                         </div>
                         <div class="input-group mb-3">
-                            <span class="input-group-text" id="yearLabel">Ano:</span>
-                            <input type="number" class="form-control" id="config-year" name="year" min="1900" max="2099" step="1" aria-label="Year" aria-describedby="yearLabel" value="2023" required>
-                        </div>
-                        <div class="input-group mb-3">
-                            <span class="input-group-text" id="config-eot-keyLabel">Chave EoT:</span>
-                            <input type="text" class="form-control" id="config-eot-key" name="EoTKey" aria-label="EoT Key" aria-describedby="config-eot-keyLabel" value="XXXXXXXXX" required>
+                            <span class="input-group-text" id="cycledayLabel">Ciclo de Leitura (dia):</span>
+                            <input type="number" class="form-control" id="config-cycle-day" name="cycle-day" min="1" max="31" aria-label="Dia Inicio" aria-describedby="cycledayLabel" value="8" required >
                         </div>
 
                         <div class="input-group mb-3">
-                            <span class="input-group-text" id="cycledayLabel">Ciclo de Leitura (dia):</span>
-                            <input type="number" class="form-control" id="config-cycle-day" name="cycle-day" min="1" max="31" aria-label="Dia Inicio" aria-describedby="cycledayLabel" value="8" required >
+                            <span class="input-group-text" id="ProfileLabel">Perfil Consumo:</span>
+                            <select class="form-control" id="config-profile" name="Profile" aria-label="Profile" aria-describedby="ProfileLabel" required>
+                                <option value="BTN-A">BTN A</option>
+                                <option value="BTN-B">BTN B</option>
+                                <option value="BTN-C" selected>BTN C</option>
+                                <option value="IP">IP</option>
+                            </select>
+                        </div>
+
+                        <div class="input-group mb-3">
+                            <span class="input-group-text" id="refreshLabel">Atualização de Dados (min):</span>
+                            <input type="number" class="form-control" id="config-refresh-rate" name="cycle-day" min="1" max="500" aria-label="refreshRate" aria-describedby="refreshLabel" value="15" required >
+                        </div>
+
+                        <div class="input-group mb-3">
+                            <span class="input-group-text" id="config-eot-keyLabel">Chave EoT:</span>
+                            <input type="text" class="form-control" id="config-eot-key" name="EoTKey" aria-label="EoT Key" aria-describedby="config-eot-keyLabel" value="XXXXXXXXX" required>
                         </div>
 
                         <button type="submit" class="btn btn-outline-primary">Guardar Configuração</button>
