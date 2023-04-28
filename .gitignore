@@ -6,5 +6,5 @@ docker_send_to_cloud.sh
 runDocker.sh
 omie-client/temp.js
 omie-client/test.py 
-app.log 
-
+app.log
+omie-server/test.py
