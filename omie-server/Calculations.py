@@ -1,4 +1,3 @@
-import threading 
 import math
 import datetime
 from datetime import time
@@ -153,12 +152,10 @@ class EnergyCosts():
     cycle_day = None
     profile = None
     master_prices_table = None
-    lock = None # TO DELETE
     luzboa_prices = None
 
 
     def __init__(self, option, year, supplier, cycle_day=1, profile= 'BTN C', timezone = 'Europe/Lisbon'):
-        self.lock = threading.Lock()
         self.logger = setup_logger('EnergyCosts')
         dst_start, dst_end = self.get_dst_dates (year, timezone)
         self.dst_start = dst_start
@@ -401,35 +398,6 @@ class EnergyCosts():
 
         return cost, ret_data
 
-    def DELETE_calc_luzboa_price_table (self, omie_data, loss_profile_data):
-        # Get the start and end date of the Omie data we have
-        start_date = omie_data.index.min()
-        end_date = omie_data.index.max()
-
-        # Create a copy of the OMIE data 
-        luzboa_prices = omie_data.copy ()
-        
-        # Filter the Loss data for the period
-        loss_df = loss_profile_data.loc[start_date:end_date].copy ()
-
-        # Create the "Total Loss" column
-        loss_df['Total_Loss'] = ((1 + loss_df['BT']) * (1 + loss_df['MT']) * (1 + loss_df['AT']) * (1 + loss_df['ATRNT'])) - 1
-
-        # Resample loss_df to an hourly frequency and calculate the mean of Total_Loss
-        loss_df_hourly = loss_df[['Total_Loss']].resample('H').mean()
-
-        # Align the indexes and create the 'Loss' column in the omie_data DataFrame
-        luzboa_prices['Loss'] = loss_df_hourly['Total_Loss'].reindex(luzboa_prices.index, method='ffill')
-
-        # Calculate the price for each row
-        luzboa_prices['price'] = luzboa_prices.apply(lambda row: self.calc_luzboa_price (row['Price_PT']/1000, fator_perdas_energia= row['Loss']), axis=1)
-
-        # Add columns for "Vazio", "Cheio" or "Ponta"
-        luzboa_prices[['Vazio', 'Cheio', 'Ponta', 'TAR']] = luzboa_prices.apply(lambda row: self.add_columns_energy_by_period(row, column_name='price'), axis=1)
-        
-        self.logger.info ("Calculate LuzBoa Price Table for the period: {} - {}".format(start_date, end_date))
-        return luzboa_prices
-
     def calc_master_table (self, profile_table, loss_profile_table, omie_table, omie_column='Price_PT'  ):
         # Get the start and end date of the Omie data we have
         start_date = omie_table.index.min() 
@@ -470,7 +438,6 @@ class EnergyCosts():
         end_date = pd.to_datetime(end_date)
 
         # Filter the master_table for the period
-        #with self.lock:
         working_table = self.master_prices_table.loc[start_date:end_date].copy()
 
         # Calculate the price for each row
@@ -505,34 +472,7 @@ class EnergyCosts():
         return data
 
     def setMasterPrices (self, master_prices_table):
-        #with self.lock:
         self.master_prices_table = master_prices_table.copy()
-
-    def DELETE_get_luzboa_average_prices2 (self, start_date, end_date, lagHour=1):
-        # Get LuzBoa prices for the given period
-
-        # Convert the dates to datetime
-        start_date = pd.to_datetime(start_date)
-        end_date = pd.to_datetime(end_date)
-
-        # Filter the LuzBoa data for the period
-        #with self.lock:
-        luzBoaPrices = self.master_prices_table.loc[start_date:end_date] 
-        
-        fv_sum =  luzBoaPrices[ ['Cheio', 'Ponta']].sum().sum()
-        fv_count =  luzBoaPrices[ ['Cheio', 'Ponta']].count().sum() 
-
-        # Calculate the average price for each period
-        data = {
-            'simples': luzBoaPrices['price'].mean(),
-            'avgVazio': luzBoaPrices['Vazio'].mean(),
-            'avgForaVazio': fv_sum / fv_count,
-            'avgCheio': luzBoaPrices['Cheio'].mean(),
-            'avgPonta': luzBoaPrices['Ponta'].mean(),
-            'avgOmiePrice': luzBoaPrices['Price_PT'].mean(),
-            'numPeriods': len(luzBoaPrices),
-        }
-        return data
 
     def add_columns_energy_by_period (self, row, column_name= 'Energy'):
         date = row.name
@@ -663,7 +603,6 @@ class EnergyCosts():
 
         return recs
 
-
     def calc_luzboa_costs(self, start_date, end_date, vazio_energy, cheio_energy, ponta_energy, lagHour, records= 'none'):
         vazio_energy= float (vazio_energy)
         cheio_energy= float (cheio_energy)
@@ -742,7 +681,6 @@ class EnergyCosts():
         end_date = pd.to_datetime(end_date)
 
         # Filter the master_table for the period
-        #with self.lock:
         working_table = self.master_prices_table.loc[start_date:end_date] #.copy()
 
         # Calculate the price for each row
@@ -828,119 +766,3 @@ class EnergyCosts():
             'recs' : recs  
         }
         return data_dict
-
-    def DELETE_get_profile_estimation_manual(self, profile_data, omie_data, loss_profile_data, start_date, end_date, vazio_energy, cheio_energy, ponta_energy, lagHour, records= 'none'):
-        vazio_energy= float (vazio_energy)
-        cheio_energy= float (cheio_energy)
-        ponta_energy= float (ponta_energy)
-
-        if ("coopernico" in self.energy_supplier):
-            subset_profile = profile_data.loc[start_date:end_date][self.profile].copy()
-            subset_profile = subset_profile.to_frame()
-            subset_profile.columns = [self.profile]
-
-            # Add the columns 'Vazio', 'Cheio' and 'Ponta' with the energy consumption for each period
-            subset_profile[['Vazio', 'Cheio', 'Ponta', 'TAR']] = subset_profile.apply(lambda x: self.add_columns_energy_by_period (x, self.profile), axis=1)
-
-            sum_profile_vazio = subset_profile['Vazio'].astype(float).sum()
-            subset_profile['Energy_vazio'] = subset_profile['Vazio'] * (vazio_energy / sum_profile_vazio)
-
-            sum_profile_cheio = subset_profile['Cheio'].astype(float).sum()
-            subset_profile['Energy_cheio'] = subset_profile['Cheio'] * (cheio_energy / sum_profile_cheio)
-
-            sum_profile_ponta = subset_profile['Ponta'].astype(float).sum()
-            subset_profile['Energy_ponta'] = subset_profile['Ponta'] * (ponta_energy / sum_profile_ponta)
-
-            # Create new columns with the cost of each 
-            subset_profile['Cost_vazio'] = subset_profile.apply(lambda row: self.calc_energy_price (row.name, row['Energy_vazio'], omie_data, loss_profile_data, lagHour, 'Price_PT', 1)[0], axis=1)
-            subset_profile['Cost_cheio'] = subset_profile.apply(lambda row: self.calc_energy_price (row.name, row['Energy_cheio'], omie_data, loss_profile_data, lagHour, 'Price_PT', 1)[0], axis=1)
-            subset_profile['Cost_ponta'] = subset_profile.apply(lambda row: self.calc_energy_price (row.name, row['Energy_ponta'], omie_data, loss_profile_data, lagHour, 'Price_PT', 1)[0], axis=1)
-
-            # Sum the energy and cost for each period
-            energy_vazio_sum =  subset_profile['Energy_vazio'].astype(float).sum()
-            energy_cheio_sum =  subset_profile['Energy_cheio'].astype(float).sum()
-            energy_ponta_sum =  subset_profile['Energy_ponta'].astype(float).sum()
-            cost_vazio_sum   =  subset_profile['Cost_vazio'].astype(float).sum()
-            cost_cheio_sum   =  subset_profile['Cost_cheio'].astype(float).sum()
-            cost_ponta_sum   =  subset_profile['Cost_ponta'].astype(float).sum()
-
-            # Calculate the average cost for each period
-            vazio_avg_cost = 0 if energy_vazio_sum == 0 else cost_vazio_sum / energy_vazio_sum
-            cheio_avg_cost = 0 if energy_cheio_sum == 0 else cost_cheio_sum / energy_cheio_sum
-            ponta_avg_cost = 0 if energy_ponta_sum == 0 else cost_ponta_sum / energy_ponta_sum
-            
-            # Create a new column "Cost" with the sum of the three columns without modifying the original columns
-            subset_profile['Cost'] = subset_profile['Cost_cheio'].fillna(0) + subset_profile['Cost_ponta'].fillna(0) + subset_profile['Cost_vazio'].fillna(0)
-            
-            # Drop the columns that are not needed to be returned
-            subset_profile.drop(columns=[self.profile, 'Cost_vazio', 'Cost_cheio', 'Cost_ponta', 'Vazio', 'Cheio', 'Ponta'], inplace=True)
-            
-            # Reanme the columns 'Energy_vazio', 'Energy_cheio' and 'Energy_ponta'
-            subset_profile.rename(columns={'Energy_vazio': 'Vazio', 'Energy_cheio': 'Cheio', 'Energy_ponta': 'Ponta'}, inplace=True)
-            
-            # Create a new column "Energy" with the sum of the three columns without modifying the original columns
-            subset_profile['Energy'] = subset_profile['Vazio'].fillna(0) + subset_profile['Cheio'].fillna(0) + subset_profile['Ponta'].fillna(0)
-            
-            recs = ''
-            if records == 'csv':
-                # Export the DataFrame to CSV
-                recs = subset_profile.to_csv(index=True, date_format='%Y-%m-%d %H:%M', path_or_buf=None)
-            elif records == 'json':
-                # Export the DataFrame to JSON
-                # Format the index     
-                subset_profile.index = subset_profile.index.strftime('%Y-%m-%d %H:%M')
-                # Convert the DataFrame to JSON
-                recs = json.loads ( subset_profile.to_json( orient='table', index=True) )['data']
-        elif ("luzboa" in self.energy_supplier):
-            cost_vazio_sum = 0
-            cost_cheio_sum = 0
-            cost_ponta_sum = 0
-            energy_vazio_sum = vazio_energy
-            energy_cheio_sum = cheio_energy
-            energy_ponta_sum = ponta_energy
-            vazio_avg_cost = 0
-            cheio_avg_cost = 0
-            ponta_avg_cost = 0
-            recs =''
-
-            luzboa_prices = self.get_luzboa_average_prices (start_date, end_date, lagHour=lagHour)
-            if (self.energy_cost_option == 'Simples'):
-                cost_vazio_sum = 0
-                cost_cheio_sum = cheio_energy * luzboa_prices['simples']
-                cost_ponta_sum = 0
-                vazio_avg_cost = 0
-                cheio_avg_cost = luzboa_prices['simples']
-                ponta_avg_cost = 0
-            elif ('Bi-Horario' in self.energy_cost_option):
-                cost_vazio_sum = vazio_energy * luzboa_prices['avgVazio']
-                cost_cheio_sum = cheio_energy * luzboa_prices['avgForaVazio']
-                cost_ponta_sum = 0
-                vazio_avg_cost = luzboa_prices['avgVazio']
-                cheio_avg_cost = luzboa_prices['avgForaVazio']
-                ponta_avg_cost = 0
-            elif ('Tri-Horario' in self.energy_cost_option):
-                cost_vazio_sum = vazio_energy * luzboa_prices['avgVazio']
-                cost_cheio_sum = cheio_energy * luzboa_prices['avgCheio']
-                cost_ponta_sum = ponta_energy * luzboa_prices['avgPonta']
-                vazio_avg_cost = luzboa_prices['avgVazio']
-                cheio_avg_cost = luzboa_prices['avgCheio']
-                ponta_avg_cost = luzboa_prices['avgPonta']
-
-        data_dict = {
-            'Start_date' : start_date.strftime("%Y-%d-%m %H:%M"),
-            'End_date' : end_date.strftime("%Y-%d-%m %H:%M"),
-            'Total_Energy' : (vazio_energy+cheio_energy+ponta_energy),
-            'Energy_Vazio' : energy_vazio_sum,
-            'Energy_Cheio' : energy_cheio_sum, 
-            'Energy_Ponta' : energy_ponta_sum,
-            'Total_cost' : cost_vazio_sum + cost_cheio_sum + cost_ponta_sum,
-            'Cost_Vazio' : cost_vazio_sum,
-            'Cost_Cheio' : cost_cheio_sum,
-            'Cost_Ponta' : cost_ponta_sum,
-            'Vazio_avg_price_cost' : vazio_avg_cost,
-            'Cheio_avg_price_cost' : cheio_avg_cost,
-            'Ponta_avg_price_cost' : ponta_avg_cost,
-            'recs' : recs  
-        }
-        return data_dict
-    
