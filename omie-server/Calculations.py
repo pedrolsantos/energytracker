@@ -143,9 +143,7 @@ Energy_Suppliers = {'coopernico-base', 'coopernico-go', 'luzboa-spot'}
 
 ###### PERFIS DE CONSUMO ######
 Energy_Profiles = ['BTN-A', 'BTN-B', 'BTN-C', 'IP', 'mP', 
-                   'UPAC-A-CV-Consumo', 'UPAC-A-CV-Injecao', 
-                   'UPAC-B-CV-Consumo', 'UPAC-B-CV-Injecao', 
-                   'UPAC-C-CV-Consumo', 'UPAC-C-CV-Injecao', 
+                   'UPAC-A-CV-Consumo', 'UPAC-B-CV-Consumo', 'UPAC-C-CV-Consumo', 
                    'UPAC-A-Consumo', 'UPAC-B-Consumo', 'UPAC-C-Consumo']
 
 ### CLASSES ###

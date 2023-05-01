@@ -278,6 +278,10 @@ def upload_energy_file():
         dfConsumo.index = dfConsumo.index.strftime('%Y-%m-%d %H:%M')
         # Convert the DataFrame to JSON
         records = json.loads ( dfConsumo.to_json( orient='table', index=True) )['data']
+        try:
+            os.remove(filepath)
+        except Exception as error:
+            app.logger.error("Error removing file: %s", error)
     
     app.logger.info ("Service Done - uploadEnergyFile")
     return records, 200
