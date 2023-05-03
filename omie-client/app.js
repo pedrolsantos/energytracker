@@ -11,6 +11,7 @@ var CONFIG = {
                 'EoTKey': 'XXXXXXXXXX',
                 'cycle_day': 8,
                 'profile': 'BTN-C',
+                'divisor': 0,
                 'allowDebug': false,
             };
 
@@ -74,9 +75,10 @@ class ApiService {
         const year = CONFIG.year;
         const cycle_day = CONFIG.cycle_day;
         const profile = CONFIG.profile;
-        const resample = sample; //testing
+        const resample = sample; 
+        const divisor = (CONFIG.divisor != 0) ? CONFIG.divisor: '';
 
-        const url = `${this.baseUrl}/uploadEnergyFile?supplier=${supplier}&tariff=${tariff}&year=${year}&cycle_day=${cycle_day}&profile=${profile}&format=${format}&provider=${provider}&resampling=${resample}`;
+        const url = `${this.baseUrl}/uploadEnergyFile?supplier=${supplier}&tariff=${tariff}&year=${year}&cycle_day=${cycle_day}&profile=${profile}&format=${format}&provider=${provider}&resampling=${resample}&divisor=${divisor}`;
     
         const formData = new FormData();
         formData.append('file', file);
@@ -613,7 +615,7 @@ class PriceTracker {
         document.getElementById('analysis-periodo-end').value = this.formatDate(global_minmaxdate.maxDate, true);
 
         document.getElementById('analysis-custo-total').textContent = `${dataResults.totalCost.toFixed(2)}` + ' €';
-        document.getElementById('analysis-custo-preco-medio').textContent = `${ dataResults.globalAvgPrice.toFixed(4)} ` + ' €/kWh';
+        document.getElementById('analysis-custo-preco-medio').textContent = `${ dataResults.globalAvgPrice.toFixed(6)} ` + ' €/kWh';
         
         document.getElementById('analysis-energia-vazio-total').textContent = `${dataResults.vazioEnergy.toFixed(2)} ` + ' kWh' + ' (' + `${dataResults.vazioCost.toFixed(2)} ` + ' €)';
         document.getElementById('analysis-energia-cheio-total').textContent = `${dataResults.cheioEnergy.toFixed(2)} ` + ' kWh' + ' (' + `${dataResults.cheioCost.toFixed(2)} ` + ' €)';
@@ -1074,7 +1076,7 @@ class PriceTracker {
             document.getElementById('analysis-energia-profile-ponta-total').textContent = `${response['Energy_Ponta'].toFixed(2)} ` + ' kWh' + ' (' + `${(response['Cost_Ponta']).toFixed(2)} ` + ' €)';
             document.getElementById('analysis-energia-profile-total').textContent       = `${response['Total_energy'].toFixed(2)} ` + ' kWh' ;
             document.getElementById('analysis-custo-profile-total').textContent         = `${response['Total_Cost'].toFixed(2)} ` + ' €';
-            document.getElementById('analysis-custo-profile-preco-medio').textContent   = `${profile_average_price_total.toFixed(4)} ` + ' €/kWh';
+            document.getElementById('analysis-custo-profile-preco-medio').textContent   = `${profile_average_price_total.toFixed(6)} ` + ' €/kWh';
 
             document.getElementById('analysis-custo-profile-preco-medio-vazio').textContent = `${response['Vazio_avg_price_cost'].toFixed(4)} ` + ' €/kWh';
             document.getElementById('analysis-custo-profile-preco-medio-cheio').textContent = `${response['Cheio_avg_price_cost'].toFixed(4)} ` + ' €/kWh';
@@ -1109,6 +1111,9 @@ var priceTrackerApp = null;
 var priceChart, priceChartNet, priceChartAnalysis = null;
 var slider = null;
 var timerId;
+var file = null;
+var sample = '';
+
 
 // On Start
 document.addEventListener('DOMContentLoaded', () => {
@@ -1261,7 +1266,6 @@ document.addEventListener('DOMContentLoaded', () => {
   
 
 });
-
 
 // ********** Functions for the management of the UI **********
 // Custom log function
@@ -1451,9 +1455,6 @@ function handleAnaliseRefreshContador (event){
     priceTrackerApp.fetchProfileDataBasedOnManual(minmaxdate, inputVazio, inputCheio, inputPonta,)
 }
 
-var file = null;
-var sample = '';
-
 async function handleFileInputChange(event) {
     if (!event.target.files || event.target.files.length === 0) {
         return;
@@ -1497,6 +1498,17 @@ function updateDropDownProviderTitle(event, option) {
     event.preventDefault();
     const dropdownMenuButton = document.getElementById("analisys-provider");
     dropdownMenuButton.innerHTML = option.innerHTML;
+}
+
+function updateDropDownDivisor(event, option) {
+    event.preventDefault();
+    document.getElementById("analisys-divisor").innerHTML = option.innerHTML;
+    if (option.innerHTML == "Auto"){
+        CONFIG.divisor = 0;
+    }
+    else{
+        CONFIG.divisor = option.innerHTML;
+    }
 }
 
 function showAlert(message) {

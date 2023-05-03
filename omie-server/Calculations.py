@@ -329,7 +329,7 @@ class EnergyCosts():
         }
         return data
         
-    def calc_coopernico_price (self, omie_price, custos_gestao=0.004, margem=0.01, fator_perdas_energia=0.15658358, go=0):
+    def calc_coopernico_price (self, omie_price, custos_gestao=0.004, margem=0.01, fator_perdas_energia=0.15658358):
         # Coopernico Formula : Preço Energia (€/kWh) = (PM + CGS + k + GO) x (1+FP)
         # PM = Preço OMIE / 1000
         # CGS = Custo de Gestão do Sistema
@@ -337,7 +337,12 @@ class EnergyCosts():
         # FP = Fator de Potência
         # https://www.coopernico.pt/pt/energia/precos-energia/precos-energia-2021
 
-        price = (omie_price/1000 + custos_gestao + margem + go) * (1+fator_perdas_energia) 
+        if (self.energy_supplier == 'coopernico-base'):
+            cost_GO = 0
+        elif (self.energy_supplier == 'coopernico-go'):
+            cost_GO = 0.01
+
+        price = (omie_price/1000 + custos_gestao + margem + cost_GO) * (1+fator_perdas_energia) 
         return price
 
     def calc_luzboa_price (self, preco_medio_mensal, fator_perdas_energia, saj=0.004, fator_adequacao=1.02, custos_gestao=0.005 ):
@@ -370,10 +375,8 @@ class EnergyCosts():
         start_date, end_date = self.get_current_cycle_period(self.cycle_day)
         cycle_period = {'start': start_date, 'end': end_date}
 
-        if (self.energy_supplier == 'coopernico-base'):
+        if ( 'coopernico' in self.energy_supplier):
             price = self.calc_coopernico_price (omie_price, fator_perdas_energia=loss)
-        elif (self.energy_supplier == 'coopernico-go'):
-            price = self.calc_coopernico_price (omie_price, fator_perdas_energia=loss, go=0.01)
         elif (self.energy_supplier == 'luzboa-spot'):
             if (self.luzboa_prices is not None):
                 if (self.energy_cost_option == 'Simples'):
@@ -688,7 +691,7 @@ class EnergyCosts():
         working_table = self.master_prices_table.loc[start_date:end_date].copy()
 
         # Calculate the price for each row
-        working_table['Price'] = working_table.apply(lambda row: self.calc_coopernico_price (row['OMIE Price']*1000 , fator_perdas_energia= row['Loss'], go=0), axis=1)
+        working_table['Price'] = working_table.apply(lambda row: self.calc_coopernico_price (row['OMIE Price']*1000 , fator_perdas_energia= row['Loss'] ), axis=1)
 
         # Add columns for "Vazio", "Cheio" or "Ponta"
         working_table[['Vazio', 'Cheio', 'Ponta', 'TAR']] = working_table.apply(lambda x: self.add_columns_energy_by_period (x, self.profile), axis=1)
@@ -705,7 +708,13 @@ class EnergyCosts():
         sum_profile_vazio = working_table['Vazio'].astype(float).sum()
         sum_profile_cheio = working_table['Cheio'].astype(float).sum()
         sum_profile_ponta = working_table['Ponta'].astype(float).sum()
-        
+
+        # Verify for zero division
+        sum_profile_vazio = 1 if sum_profile_vazio == 0 else sum_profile_vazio
+        sum_profile_cheio = 1 if sum_profile_cheio == 0 else sum_profile_cheio
+        sum_profile_ponta = 1 if sum_profile_ponta == 0 else sum_profile_ponta
+    
+        # Calculate the energy amount
         working_table['Energy_vazio'] = working_table['Vazio'] * (vazio_energy / sum_profile_vazio)
         working_table['Energy_cheio'] = working_table['Cheio'] * (cheio_energy / sum_profile_cheio)
         working_table['Energy_ponta'] = working_table['Ponta'] * (ponta_energy / sum_profile_ponta)

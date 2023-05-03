@@ -186,6 +186,19 @@
                                                         <label for="consumo-browse-file" class="" id="labelFicheiroConsumo" style="color: dodgerblue;">Ficheiro de Consumo: </label>
                                                         <input class="form-control form-control-sm" id="consumo-browse-file" type="file" style="color: dodgerblue;">
                                                     </div>
+                                                    <h6 class="d-flex justify-content-between" style="color: lightslategray;" >
+                                                        Divisor do Consumo:
+                                                        <div class="dropdown shadow-0" style="height: 10px;">
+                                                            <a class="btn btn-info dropdown-toggle text-end btn-xs slim-dropdown-btn" type="button" id="analisys-divisor" data-bs-toggle="dropdown" aria-expanded="false" style="color: dodgerblue;background-color: #FFFFFF;">
+                                                                Auto
+                                                            </a>                                            
+                                                            <ul class="dropdown-menu slim-dropdown-menu" aria-labelledby="dropdownMenuButton"> 
+                                                                <li><a class="dropdown-item" href="#" onclick="updateDropDownDivisor(event, this)">Auto</a></li>
+                                                                <li><a class="dropdown-item" href="#" onclick="updateDropDownDivisor(event, this)">1</a></li>
+                                                                <li><a class="dropdown-item" href="#" onclick="updateDropDownDivisor(event, this)">4</a></li>
+                                                            </ul>
+                                                        </div>
+                                                    </h6>  
                                                 </div>
 
                                                 <a style="color: lightslategray;font-style: oblique;" >Período:</a>

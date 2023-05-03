@@ -216,6 +216,16 @@ def upload_energy_file():
     if (arg_lagHour)  :
         laghour = int(arg_lagHour)
 
+    arg_divisionfactor = request.args.get('divisor')
+    if (arg_divisionfactor is None) or (arg_divisionfactor == '') :
+        divisionFactor = 0
+    elif (arg_divisionfactor is not None) and (not arg_divisionfactor.isdigit()) :
+        app.logger.error ("upload_energy_file: Invalid division factor" + arg_divisionfactor)
+        return jsonify({'error': 'Invalid division factor'}), 400
+    else:
+        divisionFactor = int(arg_divisionfactor)
+
+
     # check if the post request has the file part
     if 'file' not in request.files:
         app.logger.error('upload_energy_file: No file part')
@@ -241,15 +251,15 @@ def upload_energy_file():
     energy_cost = EnergyCosts(str_tarifario, int(str_year) , str_supplier, cycle_day, arg_profile)
     energy_cost.setMasterPrices (data_ingest.master_prices_table)
     
-    divisionFactor = 1
+
     if (str_provider == 'E-Redes'):
         # Load the file into a DataFrame
         dfConsumo = data_ingest.load_ERedes_Consumption_data (filepath, arg_sampling)
-        divisionFactor = 4 
+        divisionFactor = 4 if divisionFactor == 0 else divisionFactor
     elif (str_provider == 'EoT'):
         # Load the file into a DataFrame
         dfConsumo = data_ingest.load_EOT_Consumption_data (filepath)
-        divisionFactor = 1 
+        divisionFactor = 1 if divisionFactor == 0 else divisionFactor
 
     # Add the energy cost column
     dfConsumo = energy_cost.add_energy_consumption_cost_column (dfConsumo, data_ingest.omie_data, data_ingest.profile_loss_data, 'Energy', divisionFactor, lagHour=laghour)
