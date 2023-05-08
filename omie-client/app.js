@@ -77,8 +77,9 @@ class ApiService {
         const profile = CONFIG.profile;
         const resample = sample; 
         const divisor = (CONFIG.divisor != 0) ? CONFIG.divisor: '';
+        const lagHour = 0;
 
-        const url = `${this.baseUrl}/uploadEnergyFile?supplier=${supplier}&tariff=${tariff}&year=${year}&cycle_day=${cycle_day}&profile=${profile}&format=${format}&provider=${provider}&resampling=${resample}&divisor=${divisor}`;
+        const url = `${this.baseUrl}/uploadEnergyFile?supplier=${supplier}&tariff=${tariff}&year=${year}&cycle_day=${cycle_day}&profile=${profile}&format=${format}&provider=${provider}&resampling=${resample}&divisor=${divisor}&lagHour=${lagHour}`;
     
         const formData = new FormData();
         formData.append('file', file);
@@ -1028,7 +1029,7 @@ class PriceTracker {
 
     fetchProfileDataBasedOnManual(minmaxdate, total_vazio, total_cheio, total_ponta ) {
         // Get manual profile data for "Perfil C"
-        const lagHour = 1
+        const lagHour = 0
         apiService.getEstimationProfileManual( this.formatDate(minmaxdate.minDate) , this.formatDate(minmaxdate.maxDate), total_vazio, total_cheio, total_ponta, lagHour, 'json' ).then(response => {
             const profile_average_price_total = response['Total_Cost']/ response['Total_energy'] ;
 

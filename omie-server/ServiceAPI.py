@@ -13,6 +13,7 @@ import pytz
 import json
 from flask import Flask, request, jsonify, send_from_directory, after_this_request
 from flask_cors import CORS
+from flask_caching import Cache
 
 from logger_config import setup_logger, setBasePath
 
@@ -36,7 +37,28 @@ EREDES_PATH = os.path.join(BASE_PATH, 'ERedes_profiles/')
 app = Flask(__name__)
 CORS(app)
 
+# Configure caching
+cache_config = {
+    "CACHE_TYPE": "SimpleCache",  # In-memory cache for development
+    # For production, use a more advanced cache type, such as RedisCache or MemcachedCache.
+    "CACHE_DEFAULT_TIMEOUT": 300  # Cache timeout in seconds (5 minutes)
+}
+
+app.config.from_mapping(cache_config)
+cache = Cache(app)
+
 #####  HELPER FUNCTIONS  #####
+def hour_based_cache_key(*args, **kwargs):
+    # Get the current hour
+    current_hour = datetime.datetime.now().strftime('%Y-%m-%d_%H')
+
+    # Convert the request.args dictionary into a sorted string
+    request_args_str = '-'.join(f"{key}={value}" for key, value in sorted(request.args.items()))
+
+    # Combine the current hour with the request arguments to form the cache key
+    cache_key = f"{current_hour}-{request_args_str}"
+    return cache_key
+
 def generate_dates_since_last_max(toDate):
     # Get the maximum index value from the data_ingest.omie_data dataframe
     max_date = data_ingest.omie_data.index.max()
@@ -365,6 +387,7 @@ def get_price_for_date():
                     'TAR Period': tar_period }), 200
 
 @app.route('/getCurrentPrice', methods=['GET'])
+@cache.memoize(make_name=hour_based_cache_key)
 def get_current_price():
     # test with:
     # curl -X GET "http://127.0.0.1:5000/getCurrentPrice?supplier=coopernico-base&tariff=Tri-Horario-Semanal&year=2023&cycle_day=1"
@@ -441,6 +464,7 @@ def get_current_price():
                     'TAR Period': tar_period }), 200
 
 @app.route('/getOMIEPricesForPeriod', methods=['GET'])
+@cache.memoize(make_name=hour_based_cache_key)
 def getOMIEPricesForPeriod ():
     # test with:
     # curl -X GET "http://127.0.0.1:5000/getOMIEPricesForPeriod?supplier=coopernico-base&tariff=Simples&year=2023&cycle_day=1&supplier=coopernico-base&start_date=2023-02-23-00:00&end_date=2023-02-24-00:00"

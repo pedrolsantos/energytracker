@@ -18,23 +18,23 @@ Energy_Time_Cycle = {
         {'dst':0, 'dias':2, 'start': '00:00', 'end': '23:59', 'tar': -0.0958, 'periodo':'Cheio'}, # Domingo
     ],
     'Bi-Horario-Semanal': [
-        {'dst':1, 'dias':0, 'start': '00:00', 'end': '06:59', 'tar': -0.1185, 'periodo':'Vazio'}, # Seg a Sexta em Vazio no Verão
-        {'dst':1, 'dias':0, 'start': '07:00', 'end': '23:59', 'tar': -0.0842, 'periodo':'Cheio'}, # Seg a Sexta em Fora de Vazio no Verão
-        {'dst':1, 'dias':1, 'start': '00:00', 'end': '08:59', 'tar': -0.1185, 'periodo':'Vazio'}, # Sábado em Vazio no Verão
-        {'dst':1, 'dias':1, 'start': '09:00', 'end': '13:59', 'tar': -0.0842, 'periodo':'Cheio'}, # Sábado em Fora Vazio no Verão
-        {'dst':1, 'dias':1, 'start': '14:00', 'end': '19:59', 'tar': -0.1185, 'periodo':'Vazio'}, # Sábado em Vazio no Verão
-        {'dst':1, 'dias':1, 'start': '20:00', 'end': '21:59', 'tar': -0.0842, 'periodo':'Cheio'}, # Sábado em Fora Vazio no Verão
-        {'dst':1, 'dias':1, 'start': '22:00', 'end': '23:59', 'tar': -0.1185, 'periodo':'Vazio'}, # Sábado em Vazio no Verão
-        {'dst':1, 'dias':2, 'start': '00:00', 'end': '23:59', 'tar': -0.1185, 'periodo':'Vazio'}, # Domingo em Vazio no Verão
+        {'dst':1, 'dias':0, 'start': '00:00', 'end': '06:59', 'periodo':'Vazio'}, # Seg a Sexta em Vazio no Verão
+        {'dst':1, 'dias':0, 'start': '07:00', 'end': '23:59', 'periodo':'Cheio'}, # Seg a Sexta em Fora de Vazio no Verão
+        {'dst':1, 'dias':1, 'start': '00:00', 'end': '08:59', 'periodo':'Vazio'}, # Sábado em Vazio no Verão
+        {'dst':1, 'dias':1, 'start': '09:00', 'end': '13:59', 'periodo':'Cheio'}, # Sábado em Fora Vazio no Verão
+        {'dst':1, 'dias':1, 'start': '14:00', 'end': '19:59', 'periodo':'Vazio'}, # Sábado em Vazio no Verão
+        {'dst':1, 'dias':1, 'start': '20:00', 'end': '21:59', 'periodo':'Cheio'}, # Sábado em Fora Vazio no Verão
+        {'dst':1, 'dias':1, 'start': '22:00', 'end': '23:59', 'periodo':'Vazio'}, # Sábado em Vazio no Verão
+        {'dst':1, 'dias':2, 'start': '00:00', 'end': '23:59', 'periodo':'Vazio'}, # Domingo em Vazio no Verão
 
-        {'dst':0, 'dias':0, 'start': '00:00', 'end': '06:59', 'tar': -0.1185, 'periodo':'Vazio'}, # Seg a Sexta em Vazio no Inverno
-        {'dst':0, 'dias':0, 'start': '07:00', 'end': '23:59', 'tar': -0.0842, 'periodo':'Cheio'}, # Seg a Sexta em Fora de Vazio no Inverno
-        {'dst':0, 'dias':1, 'start': '00:00', 'end': '09:29', 'tar': -0.1185, 'periodo':'Vazio'}, # Sábado em Vazio no Inverno
-        {'dst':0, 'dias':1, 'start': '09:30', 'end': '12:59', 'tar': -0.0842, 'periodo':'Cheio'}, # Sábado em Fora Vazio no Inverno
-        {'dst':0, 'dias':1, 'start': '13:00', 'end': '18:29', 'tar': -0.1185, 'periodo':'Vazio'}, # Sábado em Vazio no Inverno
-        {'dst':0, 'dias':1, 'start': '18:30', 'end': '21:59', 'tar': -0.0842, 'periodo':'Cheio'}, # Sábado em Fora Vazio no Inverno
-        {'dst':0, 'dias':1, 'start': '22:00', 'end': '23:59', 'tar': -0.1185, 'periodo':'Vazio'}, # Sábado em Vazio no Inverno
-        {'dst':0, 'dias':2, 'start': '00:00', 'end': '23:59', 'tar': -0.1185, 'periodo':'Vazio'}, # Domingo em Vazio no Inverno
+        {'dst':0, 'dias':0, 'start': '00:00', 'end': '06:59', 'periodo':'Vazio'}, # Seg a Sexta em Vazio no Inverno
+        {'dst':0, 'dias':0, 'start': '07:00', 'end': '23:59', 'periodo':'Cheio'}, # Seg a Sexta em Fora de Vazio no Inverno
+        {'dst':0, 'dias':1, 'start': '00:00', 'end': '09:29', 'periodo':'Vazio'}, # Sábado em Vazio no Inverno
+        {'dst':0, 'dias':1, 'start': '09:30', 'end': '12:59', 'periodo':'Cheio'}, # Sábado em Fora Vazio no Inverno
+        {'dst':0, 'dias':1, 'start': '13:00', 'end': '18:29', 'periodo':'Vazio'}, # Sábado em Vazio no Inverno
+        {'dst':0, 'dias':1, 'start': '18:30', 'end': '21:59', 'periodo':'Cheio'}, # Sábado em Fora Vazio no Inverno
+        {'dst':0, 'dias':1, 'start': '22:00', 'end': '23:59', 'periodo':'Vazio'}, # Sábado em Vazio no Inverno
+        {'dst':0, 'dias':2, 'start': '00:00', 'end': '23:59', 'periodo':'Vazio'}, # Domingo em Vazio no Inverno
     ],
     'Bi-Horario-Diario': [
         {'dst':1, 'dias':0, 'start': '00:00', 'end': '07:59', 'tar': -0.1185, 'periodo':'Vazio'}, # Seg a Sexta em Vazio no Verão
@@ -138,6 +138,12 @@ Energy_Time_Cycle = {
     ]
 }
 
+###### TARIFAS ######
+ENERGY_TAR_PERIODS = [ 
+    {'start': '2023-01-01', 'end': '2023-12-31', 'Simples': -0.0958, 'Bi-Horario': {'Vazio':-0.1185, 'Cheio': -0.0842}, 'Tri-Horario': {'Vazio':-0.1185, 'Cheio':-0.1069, 'Ponta':-0.0018} },
+]
+
+
 ###### FORNECEDORES DE ENERGIA ######
 Energy_Suppliers = {'coopernico-base', 'coopernico-go', 'luzboa-spot'}
 
@@ -214,7 +220,7 @@ class EnergyCosts():
         cycle_day = int (cycle_day)
 
         # Check if the current day is less than the given day value
-        if now.day < cycle_day:
+        if now.day <= cycle_day:
             # Get the previous month and year
             prev_month = now.month - 1 if now.month > 1 else 12
             prev_year = now.year if now.month > 1 else now.year - 1
@@ -259,11 +265,27 @@ class EnergyCosts():
 
         return omie_price, ret_data
 
+    def get_tar_for_date (self, str_date, energy_option, energy_period):
+        date = pd.to_datetime(str_date)        
+        tar = 0
+        for period in ENERGY_TAR_PERIODS:
+            start_time = datetime.datetime.strptime(period['start'], '%Y-%m-%d')
+            end_time = datetime.datetime.strptime(period['end'], '%Y-%m-%d')
+            if start_time <= date <= end_time:
+                if (energy_option == 'Simples'):
+                    tar = period[energy_option]
+                else:
+                    tar = period[energy_option][energy_period]
+                break
+        return tar
+
     def get_price_tar (self, str_date):
         date = pd.to_datetime(str_date)        
         hour_minute = date.time()
         date_dst = 1 if self.is_daylight_savings(date) else 0
         date_category = self.get_day_category(date)
+
+        option = 'Bi-Horario' if ('Bi' in self.energy_cost_option) else 'Tri-Horario' if ('Tri' in self.energy_cost_option) else 'Simples'
 
         tar = 0 # Default value
         for period in Energy_Time_Cycle[self.energy_cost_option]:
@@ -272,7 +294,9 @@ class EnergyCosts():
                     start_time = datetime.datetime.strptime(period['start'], '%H:%M').time()
                     end_time = datetime.datetime.strptime(period['end'], '%H:%M').time()
                     if start_time <= hour_minute <= end_time:
-                        tar = period['tar']
+                        #tar = period['tar']
+                        #period = period['periodo']
+                        tar = self.get_tar_for_date (str_date, option, period['periodo'] )
                         #print (f"Date: {date} - Tar: {tar} - Row: {period}")
                         break
 
@@ -381,10 +405,13 @@ class EnergyCosts():
             if (self.luzboa_prices is not None):
                 if (self.energy_cost_option == 'Simples'):
                     price = self.luzboa_prices['simples']
+                    price_tar = 0
                 elif 'Bi-Horario' in self.energy_cost_option:
                     price = self.luzboa_prices['avgVazio'] if (period['periodo'] == 'Vazio') else self.luzboa_prices['avgForaVazio']
+                    price_tar = 0
                 elif 'Tri-Horario' in self.energy_cost_option:
                     price = self.luzboa_prices['avgVazio'] if (period['periodo'] == 'Vazio') else self.luzboa_prices['avgCheio'] if (period['periodo'] == 'Cheio') else self.luzboa_prices['avgPonta']
+                    price_tar = 0
 
         # Calculate the energy cost
         cost = (energy_consumption / divisionFactor) * (price + price_tar)
@@ -418,7 +445,7 @@ class EnergyCosts():
         omie_df = omie_table.loc[start_date:end_date][omie_column].copy()
         
         # add -1 hour
-        omie_df.index = omie_df.index - pd.Timedelta(hours=1)
+        omie_df.index = omie_df.index - pd.Timedelta(hours=1) # 1
 
         # Resample omie_data to match the 15-min intervals of master_table and convert to kWh
         omie_data_resampled = omie_df.resample('15min').ffill() / 1000.0
@@ -441,30 +468,44 @@ class EnergyCosts():
 
     def get_luzboa_average_prices (self, start_date, end_date, lagHour=1):
         # Convert the dates to datetime
-        start_date = pd.to_datetime(start_date)
-        end_date = pd.to_datetime(end_date)
+        start_date = pd.to_datetime(start_date) - datetime.timedelta(hours=1) #LuzBoa is not using PT time
+        end_date = pd.to_datetime(end_date) - datetime.timedelta(hours=1)
 
         # Filter the master_table for the period
         working_table = self.master_prices_table.loc[start_date:end_date].copy()
 
-        # Calculate the price for each row
-        working_table['Price'] = working_table.apply(lambda row: self.calc_luzboa_price (row['OMIE Price'] , fator_perdas_energia= row['Loss']), axis=1)
+        # init variables:
+        price_simples = 0
+        price_cheio = 0
+        price_vazio = 0
+        price_ponta = 0
+        price_fora_vazio = 0
 
-        # Add columns for "Vazio", "Cheio" or "Ponta"
-        working_table[['Vazio', 'Cheio', 'Ponta', 'TAR']] = working_table.apply(lambda x: self.add_columns_energy_by_period (x, self.profile), axis=1)
+        if 'Simples' in self.energy_cost_option:
+            # USE Mean values for the period
+            avg_Loss = working_table['Loss'].mean()
+            avg_OMIE_Price = working_table['OMIE Price'].resample('H').mean().mean() # working_table['OMIE Price'].mean()
+            tar = self.get_price_tar (start_date)[0]
+            price_simples = self.calc_luzboa_price (avg_OMIE_Price, fator_perdas_energia=avg_Loss) + tar
+        else: # Bi-Horario or Tri-Horario
+            # Calculate the price for each row
+            working_table['Price'] = working_table.apply(lambda row: self.calc_luzboa_price (row['OMIE Price'] , fator_perdas_energia= row['Loss']), axis=1)
 
-        # Calc the net price column
-        working_table['PriceNET'] = working_table['Price'] + working_table['TAR']
+            # Add columns for "Vazio", "Cheio" or "Ponta"
+            working_table[['Vazio', 'Cheio', 'Ponta', 'TAR']] = working_table.apply(lambda x: self.add_columns_energy_by_period (x, self.profile), axis=1)
 
-        price_simples = working_table['PriceNET'].resample('H').mean().mean() 
-        price_vazio =  working_table.loc[ ~working_table['Vazio'].isna(), 'PriceNET'].resample('H').mean().mean() 
-        price_fora_vazio = working_table.loc[ working_table['Vazio'].isna(), 'PriceNET'].resample('H').mean().mean() 
+            # Calc the net price column
+            working_table['PriceNET'] = working_table['Price'] + working_table['TAR']
         
-        price_cheio = working_table.loc[ ~working_table['Cheio'].isna(), 'PriceNET'].resample('H').mean().mean()
-        price_ponta = working_table.loc[ ~working_table['Ponta'].isna(), 'PriceNET'].resample('H').mean().mean() 
+            price_vazio =  working_table.loc[ ~working_table['Vazio'].isna(), 'PriceNET'].resample('H').mean().mean() 
+            price_fora_vazio = working_table.loc[ working_table['Vazio'].isna(), 'PriceNET'].resample('H').mean().mean() 
+            
+            price_cheio = working_table.loc[ ~working_table['Cheio'].isna(), 'PriceNET'].resample('H').mean().mean()
+            price_ponta = working_table.loc[ ~working_table['Ponta'].isna(), 'PriceNET'].resample('H').mean().mean() 
 
-        price_cheio = 0 if pd.isna(price_cheio) else price_cheio
-        price_ponta = 0 if pd.isna(price_ponta) else price_ponta
+            price_cheio = 0 if pd.isna(price_cheio) else price_cheio
+            price_ponta = 0 if pd.isna(price_ponta) else price_ponta
+        
 
         # Calculate the average price for each period
         data = {
@@ -684,8 +725,8 @@ class EnergyCosts():
         ponta_energy= float (ponta_energy)
 
         # Convert the dates to datetime
-        start_date = pd.to_datetime(start_date)
-        end_date = pd.to_datetime(end_date)
+        start_date = pd.to_datetime(start_date) + datetime.timedelta(hours=lagHour)
+        end_date = pd.to_datetime(end_date) + datetime.timedelta(hours=lagHour)
 
         # Filter the master_table for the period
         working_table = self.master_prices_table.loc[start_date:end_date].copy()
