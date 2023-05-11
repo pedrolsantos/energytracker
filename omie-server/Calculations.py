@@ -437,6 +437,8 @@ class EnergyCosts():
         start_date = omie_table.index.min() 
         end_date = omie_table.index.max() 
 
+        self.logger.info ("Calculate MASTER Price Table for the period: {} - {}".format(start_date, end_date))
+
         # Select the consumption profile data for the period
         master_table = profile_table.loc[start_date:end_date].copy ()
 
@@ -463,7 +465,6 @@ class EnergyCosts():
         # Align the indexes and create the 'Loss' column in the 'Prices Table' DataFrame
         master_table['Loss'] = loss_df['Total_Loss'].reindex(master_table.index, method='ffill')
 
-        self.logger.info ("Calculate MASTER Price Table for the period: {} - {}".format(start_date, end_date))
         return master_table
 
     def get_luzboa_average_prices (self, start_date, end_date, lagHour=1):
@@ -819,3 +820,36 @@ class EnergyCosts():
             'recs' : recs  
         }
         return data_dict
+
+    def calc_contagem (self, start_date, end_date, contagens):
+        # Convert start_date and end_date to datetime objects
+        start_date = datetime.datetime.strptime(start_date, '%Y-%m-%d %H:%M')
+        end_date = datetime.datetime.strptime(end_date, '%Y-%m-%d %H:%M')
+
+        closest_start_date = None
+        closest_end_date = None
+        min_start_diff = float('inf')
+        min_end_diff = float('inf')
+
+        for entry in contagens:
+            current_date = datetime.datetime.strptime(entry['Data_da_Leitura'], '%Y-%m-%d %H:%M')
+
+            start_diff = abs((current_date - start_date).total_seconds())
+            end_diff = abs((current_date - end_date).total_seconds())
+
+            if start_diff < min_start_diff:
+                min_start_diff = start_diff
+                closest_start_date = entry
+
+            if end_diff < min_end_diff:
+                min_end_diff = end_diff
+                closest_end_date = entry
+
+        # Calculate the difference for "Vazio", "Ponta", and "Cheias"
+        differences = {
+            'Vazio': closest_end_date['Vazio'] - closest_start_date['Vazio'],
+            'Ponta': closest_end_date['Ponta'] - closest_start_date['Ponta'],
+            'Cheias': closest_end_date['Cheias'] - closest_start_date['Cheias']
+        }
+
+        return differences

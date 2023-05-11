@@ -1483,8 +1483,15 @@ async function uploadFile (file){
             // document.getElementById('switch-dados-perfil-c').checked = false;
             document.getElementById('switch-chart').checked = true;
 
+            // fill the input controls of Vazio, Cheio and Ponta
+            if ( response.consumo != '') {
+                document.getElementById('analysis-contador-vazio').value = response.consumo.Vazio;
+                document.getElementById('analysis-contador-cheio').value = response.consumo.Cheias;
+                document.getElementById('analysis-contador-ponta').value = response.consumo.Ponta;                 
+            }
+
             // Setup Slider
-            priceTrackerApp.setupSliderForData(priceChartAnalysis, response);
+            priceTrackerApp.setupSliderForData(priceChartAnalysis, response.records);
             hideAlert();
         } catch (error) {
             showAlert('Erro no processamento do ficheiro. Verifique se está a usar o ficheiro correto...');

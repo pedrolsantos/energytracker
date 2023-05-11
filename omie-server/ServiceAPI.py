@@ -117,12 +117,26 @@ def send_file_and_delete(file_path, filename, folder=CONSUMOS_PATH):
 
         return send_from_directory(directory=folder, path=filename, as_attachment=True)
 
+def clean_folder (folder_path):
+    # Iterate through all files in the folder
+    for filename in os.listdir(folder_path):
+        file_path = os.path.join(folder_path, filename)
+        if os.path.isfile(file_path):
+            # Delete the file
+            os.remove(file_path)
+
 def initialize_app():
     setBasePath(BASE_PATH)
     app.logger = setup_logger('ServiceAPI')
     
+    # Clean CONSUMOS folder:
+    app.logger.info ("Clean files on Consumos folder...")
+    clean_folder (CONSUMOS_PATH)
+
+    # Download OMIE data
     data_ingest.download_OMIE_data()
     
+    # Calc the Master Prices Table
     energy_cost = EnergyCosts('Tri-Horario-Semanal', 2023, 'luzboa-spot', 1, 'BTN-C' )
     data_ingest.master_prices_table = energy_cost.calc_master_table (data_ingest.profile_data, data_ingest.profile_loss_data, data_ingest.omie_data, 'Price_PT')
     energy_cost.setMasterPrices(data_ingest.master_prices_table)
@@ -130,10 +144,6 @@ def initialize_app():
     #### testing
     start_date  = datetime.datetime( 2023, 2, 21, 0,0,0)
     end_date    = datetime.datetime( 2023, 3, 20, 23, 59, 59)
-
-    #dff = energy_cost.get_luzboa_prices_for_period (start_date, end_date)
-    #profiles_global = data_ingest.load_EREDES_GlobalProfiles(GLOBAL_PROFILE_FILE)
-    oo = 1
 
     
 
@@ -273,10 +283,10 @@ def upload_energy_file():
     energy_cost = EnergyCosts(str_tarifario, int(str_year) , str_supplier, cycle_day, arg_profile)
     energy_cost.setMasterPrices (data_ingest.master_prices_table)
     
-
+    contagens = ''
     if (str_provider == 'E-Redes'):
         # Load the file into a DataFrame
-        dfConsumo = data_ingest.load_ERedes_Consumption_data (filepath, arg_sampling)
+        dfConsumo, contagens = data_ingest.load_ERedes_Consumption_data (filepath, arg_sampling)
         divisionFactor = 4 if divisionFactor == 0 else divisionFactor
     elif (str_provider == 'EoT'):
         # Load the file into a DataFrame
@@ -284,8 +294,12 @@ def upload_energy_file():
         divisionFactor = 1 if divisionFactor == 0 else divisionFactor
 
     # Add the energy cost column
-    dfConsumo = energy_cost.add_energy_consumption_cost_column (dfConsumo, data_ingest.omie_data, data_ingest.profile_loss_data, 'Energy', divisionFactor, lagHour=laghour)
-
+    if (dfConsumo is not None):
+        dfConsumo = energy_cost.add_energy_consumption_cost_column (dfConsumo, data_ingest.omie_data, data_ingest.profile_loss_data, 'Energy', divisionFactor, lagHour=laghour)
+    else:
+        app.logger.error('upload_energy_file: File is not valid: ' + filepath)
+        return jsonify({'error': 'File is not valid'}), 400
+        
     # Save the file
     if str_exportformat == 'xls':
         filename = 'Consumos_' + datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S') + '.xlsx'
@@ -310,13 +324,16 @@ def upload_energy_file():
         dfConsumo.index = dfConsumo.index.strftime('%Y-%m-%d %H:%M')
         # Convert the DataFrame to JSON
         records = json.loads ( dfConsumo.to_json( orient='table', index=True) )['data']
-        try:
-            os.remove(filepath)
-        except Exception as error:
-            app.logger.error("Error removing file: %s", error)
+        start = dfConsumo.index.min()
+        end = dfConsumo.index.max()
+
+        data = {
+            'records': records, 
+            'consumo': '' if len(contagens) == 0 else energy_cost.calc_contagem (start, end, contagens),
+        }
     
     app.logger.info ("Service Done - uploadEnergyFile")
-    return records, 200
+    return data, 200
 
 @app.route('/getPriceForDate', methods=['GET'])
 def get_price_for_date():
@@ -959,10 +976,11 @@ GLOBAL_PROFILE_FILE     = os.path.join(EREDES_PATH, 'ERSE_perfis_de_consumo_2023
 LOSS_PROFILE_FILE       = os.path.join(EREDES_PATH, 'E-REDES_Perfil_Perdas_2023_mod.xlsx')
 
 
-data_ingest = DataIngestion(OMIE_PATH, GLOBAL_PROFILE_FILE, LOSS_PROFILE_FILE )
+data_ingest = DataIngestion(OMIE_PATH, EREDES_PATH, GLOBAL_PROFILE_FILE, LOSS_PROFILE_FILE )
 initialize_app()
 
 if __name__ == '__main__':
     # start FLASK server
+    app.logger.info ("FLASK Server Starting...")
     app.run(host="0.0.0.0", port=5000, debug=True, use_reloader=False)
     
