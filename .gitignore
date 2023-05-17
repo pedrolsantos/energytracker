@@ -6,6 +6,7 @@ docker_send_to_cloud.sh
 runDocker.sh
 omie-client/temp.js
 omie-client/test.py 
+ip_data.csv
 app.log
 omie-server/test.py
 Consumos/

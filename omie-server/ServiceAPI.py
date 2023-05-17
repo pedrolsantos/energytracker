@@ -4,7 +4,6 @@
 
 # Rest API
 import os
-
 import uuid
 import pandas as pd
 import datetime 
@@ -22,28 +21,29 @@ from Ingestion import DataIngestion
 
 ###################  FOLDERS  ############################
 currentDir = os.path.dirname(os.path.abspath(__file__))
-if os.path.exists('OMIE_Data/') and os.path.isdir('OMIE_Data/'):
+omie_data_path = os.path.join(currentDir, 'OMIE_Data')
+if os.path.exists(omie_data_path):
     BASE_PATH = currentDir
 else:
-    BASE_PATH = os.path.join(currentDir, "..")
-
-BASE_PATH = os.path.join(currentDir, '..' )
+    BASE_PATH = os.path.dirname(currentDir.rstrip('/'))
 
 OMIE_PATH = os.path.join(BASE_PATH, 'OMIE_Data/')
 CONSUMOS_PATH = os.path.join(BASE_PATH, 'Consumos/')
 EREDES_PATH = os.path.join(BASE_PATH, 'ERedes_profiles/')
 
-###################  FLASK INIT  ############################
-app = Flask(__name__)
-CORS(app)
+GLOBAL_PROFILE_FILE     = os.path.join(EREDES_PATH, 'ERSE_perfis_de_consumo_2023_especial.xlsx')
+#CONSUMO_PROFILE_FILE    = os.path.join(EREDES_PATH, 'E-REDES_Perfil_Consumo_2023_mod.xlsx')
+LOSS_PROFILE_FILE       = os.path.join(EREDES_PATH, 'E-REDES_Perfil_Perdas_2023_mod.xlsx')
 
+###################  FLASK INIT  ############################
 # Configure caching
 cache_config = {
     "CACHE_TYPE": "SimpleCache",  # In-memory cache for development
     # For production, use a more advanced cache type, such as RedisCache or MemcachedCache.
     "CACHE_DEFAULT_TIMEOUT": 300  # Cache timeout in seconds (5 minutes)
 }
-
+app = Flask(__name__)
+CORS(app)
 app.config.from_mapping(cache_config)
 cache = Cache(app)
 
@@ -117,6 +117,35 @@ def send_file_and_delete(file_path, filename, folder=CONSUMOS_PATH):
 
         return send_from_directory(directory=folder, path=filename, as_attachment=True)
 
+def log_ip_address():
+    client_ip = request.remote_addr
+    current_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    api_call = f'{request.method} {request.path}?{request.query_string.decode("utf-8")}'
+    
+    app.logger.info(f'IP: {client_ip} | Endpoint: {request.endpoint} | Path: {request.path} | Method: {request.method}')
+    
+    global ip_data
+    existing_entry = ip_data[ip_data['IP Address'] == client_ip]
+
+    if existing_entry.empty:
+        # IP address not found, create a new entry
+        new_entry = pd.DataFrame({
+            'IP Address': client_ip,
+            'First Request Date': current_time,
+            'Last Access Date': current_time,
+            'API Call': [api_call],
+        })
+        ip_data = pd.concat([ip_data, new_entry], ignore_index=True)
+    else:        
+        # Update the existing entry
+        index = existing_entry.index[0]
+        ip_data.at[index, 'Last Access Date'] = current_time
+        ip_data.at[index, 'API Call'] = [api_call]
+
+    filename = os.path.join(BASE_PATH, 'ip_data.csv')
+    ip_data.to_csv(filename, index=False)
+    return None
+
 def clean_folder (folder_path):
     # Iterate through all files in the folder
     for filename in os.listdir(folder_path):
@@ -128,6 +157,12 @@ def clean_folder (folder_path):
 def initialize_app():
     setBasePath(BASE_PATH)
     app.logger = setup_logger('ServiceAPI')
+
+    # Create the IP dataframe
+    global ip_data
+    ip_data = pd.DataFrame(columns=['IP Address', 'First Request Date', 'Last Access Date', 'API Call'])
+    # Link to the app    
+    app.before_request(log_ip_address)
     
     # Clean CONSUMOS folder:
     app.logger.info ("Clean files on Consumos folder...")
@@ -145,8 +180,11 @@ def initialize_app():
     start_date  = datetime.datetime( 2023, 2, 21, 0,0,0)
     end_date    = datetime.datetime( 2023, 3, 20, 23, 59, 59)
 
-    
 
+################### MAIN ############################
+ip_data = None
+data_ingest = DataIngestion(BASE_PATH, OMIE_PATH, EREDES_PATH, GLOBAL_PROFILE_FILE, LOSS_PROFILE_FILE )
+initialize_app()
 
 
 ############## API REST ################################# 
@@ -239,7 +277,7 @@ def upload_energy_file():
 
     arg_cycle_day = request.args.get('cycle_day')
     if (not arg_cycle_day) or (not arg_cycle_day.isdigit()) or (int(arg_cycle_day) < 0) or (int(arg_cycle_day) > 31) :
-        app.logger.error ("upload_energy_file: Invalid cycle_day" + arg_cycle_day)
+        app.logger.error ("upload_energy_file: Invalid cycle_day" + str(arg_cycle_day))
         return jsonify({'error': 'Invalid cycle_day'}), 400
     cycle_day = int(arg_cycle_day)
 
@@ -363,7 +401,7 @@ def get_price_for_date():
 
     arg_cycle_day = request.args.get('cycle_day')
     if (not arg_cycle_day) or (not arg_cycle_day.isdigit()) or (int(arg_cycle_day) < 0) or (int(arg_cycle_day) > 31) :
-        app.logger.error ("get_price_for_date: Invalid cycle_day" + arg_cycle_day)
+        app.logger.error ("get_price_for_date: Invalid cycle_day" + str(arg_cycle_day))
         return jsonify({'error': 'Invalid cycle_day'}), 400
     cycle_day = int(arg_cycle_day)
 
@@ -504,7 +542,7 @@ def getOMIEPricesForPeriod ():
     
     arg_cycle_day = request.args.get('cycle_day')
     if (not arg_cycle_day) or (not arg_cycle_day.isdigit()) or (int(arg_cycle_day) < 0) or (int(arg_cycle_day) > 31) :
-        app.logger.error ("getOMIEPricesForPeriod: Invalid cycle_day" + arg_cycle_day)
+        app.logger.error ('getOMIEPricesForPeriod: Invalid cycle_day' + str(arg_cycle_day) )
         return jsonify({'error': 'Invalid cycle_day'}), 400
     cycle_day = int(arg_cycle_day)    
 
@@ -595,7 +633,7 @@ def estimate_profile_cost():
 
     arg_cycle_day = request.args.get('cycle_day')
     if (not arg_cycle_day) or (not arg_cycle_day.isdigit()) or (int(arg_cycle_day) < 0) or (int(arg_cycle_day) > 31) :
-        app.logger.error ("estimate_profile_cost: Invalid cycle_day" + arg_cycle_day)
+        app.logger.error ("estimate_profile_cost: Invalid cycle_day" + str(arg_cycle_day) )
         return jsonify({'error': 'Invalid cycle_day'}), 400
     cycle_day = int(arg_cycle_day)
 
@@ -691,7 +729,7 @@ def estimate_profile_cost_manual():
     
     arg_cycle_day = request.args.get('cycle_day')
     if (not arg_cycle_day) or (not arg_cycle_day.isdigit()) or (int(arg_cycle_day) < 0) or (int(arg_cycle_day) > 31) :
-        app.logger.error ("estimate_profile_cost_manual: Invalid cycle_day" + arg_cycle_day)
+        app.logger.error ("estimate_profile_cost_manual: Invalid cycle_day" + str(arg_cycle_day))
         return jsonify({'error': 'Invalid cycle_day'}), 400
     cycle_day = int(arg_cycle_day)    
 
@@ -922,7 +960,7 @@ def getProfilePeriod():
     
     arg_cycle_day = request.args.get('cycle_day')
     if (not arg_cycle_day) or (not arg_cycle_day.isdigit()) or (int(arg_cycle_day) < 0) or (int(arg_cycle_day) > 31) :
-        app.logger.error ("getProfilePeriod: Invalid cycle_day" + arg_cycle_day)
+        app.logger.error ("getProfilePeriod: Invalid cycle_day" + str(arg_cycle_day))
         return jsonify({'error': 'Invalid cycle_day'}), 400
     cycle_day = int(arg_cycle_day)    
 
@@ -963,21 +1001,6 @@ def getProfilePeriod():
         'records' : records
     }), 200
 
-
-################### MAIN ############################
-currentDir = os.path.dirname(os.path.abspath(__file__))
-BASE_PATH = os.path.join(currentDir, '..' )
-OMIE_PATH = os.path.join(BASE_PATH, 'OMIE_Data/')
-CONSUMOS_PATH = os.path.join(BASE_PATH, 'Consumos/')
-EREDES_PATH = os.path.join(BASE_PATH, 'ERedes_profiles/')
-
-GLOBAL_PROFILE_FILE     = os.path.join(EREDES_PATH, 'ERSE_perfis_de_consumo_2023_especial.xlsx')
-#CONSUMO_PROFILE_FILE    = os.path.join(EREDES_PATH, 'E-REDES_Perfil_Consumo_2023_mod.xlsx')
-LOSS_PROFILE_FILE       = os.path.join(EREDES_PATH, 'E-REDES_Perfil_Perdas_2023_mod.xlsx')
-
-
-data_ingest = DataIngestion(OMIE_PATH, EREDES_PATH, GLOBAL_PROFILE_FILE, LOSS_PROFILE_FILE )
-initialize_app()
 
 if __name__ == '__main__':
     # start FLASK server

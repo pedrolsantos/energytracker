@@ -9,7 +9,7 @@ import requests
 import json
 import hashlib
 
-from logger_config import setup_logger
+from logger_config import setup_logger, setBasePath
 
 
 ### CLASSES ###
@@ -89,7 +89,8 @@ class DataIngestion():
     loss_data_file = 'loss_data.feather'
 
 
-    def __init__(self, omie_folder = '../OMIE_Data/', eredes_folder='../ERedes_profiles/', consumption_profile_data='../ERedes_profiles/E-REDES_Perfil_Consumo_2023_mod.xlsx', loss_profile_data='../ERedes_profiles/E-REDES_Perfil_Perdas_2023_mod.xlsx'):
+    def __init__(self, base_folder, omie_folder = '../OMIE_Data/', eredes_folder='../ERedes_profiles/', consumption_profile_data='../ERedes_profiles/E-REDES_Perfil_Consumo_2023_mod.xlsx', loss_profile_data='../ERedes_profiles/E-REDES_Perfil_Perdas_2023_mod.xlsx'):
+        setBasePath(base_folder)
         self.logger = setup_logger('DataIngestion')
         self.hashesManager = FilesHashes(omie_folder)
         self.omie_folder = omie_folder

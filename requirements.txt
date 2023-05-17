@@ -11,3 +11,4 @@ Flask-Caching==2.0.2
 gunicorn
 schedule==1.1.0
 supervisor
+pyarrow

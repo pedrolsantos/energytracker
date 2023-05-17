@@ -12,6 +12,7 @@ def setup_logger(name):
     logger = logging.getLogger(name)
     logger.setLevel(logging.DEBUG)
 
+    global LOG_PATH
     # Set up a RotatingFileHandler to log messages to a file
     os.makedirs(LOG_PATH, exist_ok=True)
     log_file = os.path.join(LOG_PATH, 'app.log')    

@@ -4,7 +4,7 @@ from datetime import time
 import pytz
 import pandas as pd
 import json
-from logger_config import setup_logger
+from logger_config import setup_logger, setBasePath
 
 #######   TEMPLATE DE CUSTOS DE ENERGIA   #######
 Energy_Time_Cycle = {
@@ -311,7 +311,7 @@ class EnergyCosts():
         last_valid_index = subset_profile.last_valid_index()
         
         if last_valid_index is None:
-            self.logger.error("get_loss_profile_for_date: No available data before or on target_time:" + str(target_time))
+            #self.logger.error("get_loss_profile_for_date: No available data before or on target_time:" + str(target_time))
             return 0, {}
 
         last_valid_data = loss_profile_data.loc[last_valid_index]
