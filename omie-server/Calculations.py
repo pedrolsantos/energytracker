@@ -140,7 +140,8 @@ Energy_Time_Cycle = {
 
 ###### TARIFAS ######
 ENERGY_TAR_PERIODS = [ 
-    {'start': '2023-01-01', 'end': '2023-12-31', 'Simples': -0.0958, 'Bi-Horario': {'Vazio':-0.1185, 'Cheio': -0.0842}, 'Tri-Horario': {'Vazio':-0.1185, 'Cheio':-0.1069, 'Ponta':-0.0018} },
+    {'start': '2023-01-01', 'end': '2023-06-30', 'Simples': -0.0958, 'Bi-Horario': {'Vazio':-0.1185, 'Cheio': -0.0842}, 'Tri-Horario': {'Vazio':-0.1185, 'Cheio':-0.1069, 'Ponta':-0.0018} },
+    {'start': '2023-07-01', 'end': '2023-12-31', 'Simples': -0.0121, 'Bi-Horario': {'Vazio':-0.0349, 'Cheio': -0.0005}, 'Tri-Horario': {'Vazio':-0.0349, 'Cheio':-0.0232, 'Ponta':0.0818} },
 ]
 
 
@@ -402,6 +403,7 @@ class EnergyCosts():
         if ( 'coopernico' in self.energy_supplier):
             price = self.calc_coopernico_price (omie_price, fator_perdas_energia=loss)
         elif (self.energy_supplier == 'luzboa-spot'):
+            self.update_luzboa_cache_prices()
             if (self.luzboa_prices is not None):
                 if (self.energy_cost_option == 'Simples'):
                     price = self.luzboa_prices['simples']
@@ -469,8 +471,8 @@ class EnergyCosts():
 
     def get_luzboa_average_prices (self, start_date, end_date, lagHour=1):
         # Convert the dates to datetime
-        start_date = pd.to_datetime(start_date) - datetime.timedelta(hours=1) #LuzBoa is not using PT time
-        end_date = pd.to_datetime(end_date) - datetime.timedelta(hours=1)
+        start_date = pd.to_datetime(start_date) - datetime.timedelta(hours=lagHour) #LuzBoa is not using PT time
+        end_date = pd.to_datetime(end_date) - datetime.timedelta(hours=lagHour)
 
         # Filter the master_table for the period
         working_table = self.master_prices_table.loc[start_date:end_date].copy()
@@ -740,8 +742,8 @@ class EnergyCosts():
 
         # Set the correct amounts for each period
         if (self.energy_cost_option == 'Simples'):
-            vazio_energy = vazio_energy + cheio_energy + ponta_energy
-            cheio_energy = 0
+            vazio_energy = 0
+            cheio_energy = vazio_energy + cheio_energy + ponta_energy
             ponta_energy = 0
         elif 'Bi-Horario' in self.energy_cost_option:
             cheio_energy = cheio_energy + ponta_energy
@@ -847,9 +849,9 @@ class EnergyCosts():
 
         # Calculate the difference for "Vazio", "Ponta", and "Cheias"
         differences = {
-            'Vazio': closest_end_date['Vazio'] - closest_start_date['Vazio'],
-            'Ponta': closest_end_date['Ponta'] - closest_start_date['Ponta'],
-            'Cheias': closest_end_date['Cheias'] - closest_start_date['Cheias']
+            'Vazio': float(closest_end_date['Vazio']) - float(closest_start_date['Vazio']),
+            'Ponta': float(closest_end_date['Ponta']) - float(closest_start_date['Ponta']),
+            'Cheias': float(closest_end_date['Cheias']) - float(closest_start_date['Cheias'])
         }
 
         return differences

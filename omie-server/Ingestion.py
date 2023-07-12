@@ -8,6 +8,7 @@ import pandas as pd
 import requests
 import json
 import hashlib
+import warnings
 
 from logger_config import setup_logger, setBasePath
 
@@ -163,22 +164,28 @@ class DataIngestion():
         self.omie_data = all_data
         return all_data
 
-    def download_OMIE_data(self, date = datetime.datetime.now()):
+    def download_OMIE_data(self, date=datetime.datetime.now(), filename=None, overwrite_name=None, mode=0):
         # Download today's OMIE data
-        # https://www.omie.es/pt/file-download?parents%5B0%5D=marginalpdbcpt&filename=marginalpdbcpt_20230324.1
-        
-        filename = 'marginalpdbcpt_' + date.strftime('%Y%m%d') + '.1'
-        url = 'https://www.omie.es/pt/file-download?parents%5B0%5D=marginalpdbcpt&filename=' + filename
+        # https://www.omie.es/pt/file-download?parents%5B0%5D=marginalpdbcpt&filename=marginalpdbcpt_20230324.1        saved = False
+        size = 0
+        save_name = None
+
+        if mode == 0:  # Use date to generate the filename
+            filename = 'marginalpdbcpt_' + date.strftime('%Y%m%d') + '.1'
+            save_name = filename
+            url = 'https://www.omie.es/pt/file-download?parents%5B0%5D=marginalpdbcpt&filename=' + filename
+        elif mode == 1:  # Use provided filename
+            url = 'https://www.omie.es/pt/file-download?parents%5B0%5D=marginalpdbcpt&filename=' + filename
+            save_name = overwrite_name if overwrite_name else filename
+        else:
+            return {'status_code': 400, 'filename': filename, 'size': size, 'saved': saved, 'message': 'Invalid mode'}
 
         response = requests.get(url)
-
-        # Ensure the request was successful
-        saved = False
         size = len(response.content)
 
-        if (response.status_code == 200) and (size > 0):
+        if response.status_code == 200 and size > 0:
             # Choose the destination folder and the file name
-            file_path = os.path.join(self.omie_folder, filename)
+            file_path = os.path.join(self.omie_folder, save_name)
 
             # Save the file to the specific folder
             with open(file_path, "wb") as f:
@@ -186,10 +193,10 @@ class DataIngestion():
                 saved = True
 
         saved = False if size == 0 else saved
-        status = {'status_code': response.status_code, 'filename': filename, 'size': size, 'saved': saved}
+        status = {'status_code': response.status_code, 'filename': save_name, 'size': size, 'saved': saved}
         return status
 
-    def load_ERedes_Consumption_data (self, filename, sampling=''):
+    def load_ERedes_Consumption_data (self, filename, sampling='', datatype ='cr'):
         # Load the E-Redes Consumption data
         df = pd.read_excel(filename, sheet_name='Leituras', header=None)
 
@@ -200,7 +207,10 @@ class DataIngestion():
         df = pd.read_excel(filename, sheet_name='Leituras', header=header_row_index)
 
         # Define the columns to keep
-        columns_to_keep = ['Data', 'Hora', 'Consumo registado'] #, Ativa']
+        
+        columns_to_keep = ['Data', 'Hora', 'Consumo registado']
+        if datatype == 'cm':
+            columns_to_keep = ['Data', 'Hora', 'Consumo medido']  
 
         # Create a list of columns to drop
         columns_to_drop = [col for col in df.columns if not any(part in col for part in columns_to_keep)]
@@ -241,9 +251,13 @@ class DataIngestion():
             header_row_index = contador_df.loc[(contador_df[0] == 'Data da Leitura') & (contador_df[1] == 'Origem')].index[0]
 
             # Load the table data into the JSON structure
-            readings_df = contador_df.iloc[header_row_index + 1:]
+            readings_df = contador_df.iloc[header_row_index + 1:].copy()
             readings_df.columns = contador_df.iloc[header_row_index]
             
+            #with warnings.catch_warnings():
+            #    warnings.simplefilter("ignore")
+            readings_df['Data da Leitura'] = pd.to_datetime(readings_df['Data da Leitura'], format='%d/%m/%Y',  errors='coerce')
+
             for index, row in readings_df.iterrows():
                 leitura = {
                     'Data_da_Leitura': row['Data da Leitura'].strftime('%Y-%m-%d 00:00'),

@@ -39,6 +39,7 @@ COPY ./ERedes_profiles /app/ERedes_profiles
 COPY ./omie-client/app.min.js /var/www/html
 COPY ./omie-client/index.html /var/www/html
 COPY ./omie-client/styles.css /var/www/html
+COPY ./omie-client/sitemap.xml /var/www/html
 COPY ./omie-client/bootstrap-slider.min.css /var/www/html
 COPY ./omie-client/bootstrap-slider.min.js /var/www/html
 

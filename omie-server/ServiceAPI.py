@@ -27,19 +27,16 @@ if os.path.exists(omie_data_path):
 else:
     BASE_PATH = os.path.dirname(currentDir.rstrip('/'))
 
-OMIE_PATH = os.path.join(BASE_PATH, 'OMIE_Data/')
-CONSUMOS_PATH = os.path.join(BASE_PATH, 'Consumos/')
-EREDES_PATH = os.path.join(BASE_PATH, 'ERedes_profiles/')
-
-GLOBAL_PROFILE_FILE     = os.path.join(EREDES_PATH, 'ERSE_perfis_de_consumo_2023_especial.xlsx')
-#CONSUMO_PROFILE_FILE    = os.path.join(EREDES_PATH, 'E-REDES_Perfil_Consumo_2023_mod.xlsx')
-LOSS_PROFILE_FILE       = os.path.join(EREDES_PATH, 'E-REDES_Perfil_Perdas_2023_mod.xlsx')
+OMIE_PATH       = os.path.join(BASE_PATH, 'OMIE_Data/')
+CONSUMOS_PATH   = os.path.join(BASE_PATH, 'Consumos/')
+EREDES_PATH     = os.path.join(BASE_PATH, 'ERedes_profiles/')
+GLOBAL_PROFILE_FILE = os.path.join(EREDES_PATH, 'ERSE_perfis_de_consumo_2023_especial.xlsx')
+LOSS_PROFILE_FILE   = os.path.join(EREDES_PATH, 'E-REDES_Perfil_Perdas_2023_mod.xlsx')
 
 ###################  FLASK INIT  ############################
 # Configure caching
 cache_config = {
     "CACHE_TYPE": "SimpleCache",  # In-memory cache for development
-    # For production, use a more advanced cache type, such as RedisCache or MemcachedCache.
     "CACHE_DEFAULT_TIMEOUT": 300  # Cache timeout in seconds (5 minutes)
 }
 app = Flask(__name__)
@@ -78,6 +75,23 @@ def generate_dates_since_last_max(toDate):
 
     return filenames
 
+def generate_dates_period(fromDate, toDate):
+    # Define a timedelta of one day
+    one_day = timedelta(days=1)
+
+    # Initialize a list to hold the filenames
+    filenames = []
+
+    # Loop over the range of dates from max_date to today
+    date = fromDate.date()
+    while date <= toDate.date():
+        filename = date
+        filenames.append(filename)
+        date += one_day
+
+    return filenames
+
+
 def check_and_download_OMIE ():
     ret = False
     date = datetime.datetime.now() + timedelta(days=1)
@@ -94,6 +108,7 @@ def check_and_download_OMIE ():
             ret = True
         elif (len(dates) > 1): # if more than one day has passed - download all new data available
             for req_date in dates:
+                app.logger.info ('Downloading OMIE data for date: ' + str(req_date) )
                 data_ingest.download_OMIE_data(req_date)
             data_ingest.load_OMIE_data(data_ingest.omie_folder)
             app.logger.info ('OMIE data updated successfully')
@@ -168,17 +183,26 @@ def initialize_app():
     app.logger.info ("Clean files on Consumos folder...")
     clean_folder (CONSUMOS_PATH)
 
-    # Download OMIE data
-    data_ingest.download_OMIE_data()
-    
+    # Check and Download OMIE data 
+    check_and_download_OMIE ()
+
     # Calc the Master Prices Table
     energy_cost = EnergyCosts('Tri-Horario-Semanal', 2023, 'luzboa-spot', 1, 'BTN-C' )
     data_ingest.master_prices_table = energy_cost.calc_master_table (data_ingest.profile_data, data_ingest.profile_loss_data, data_ingest.omie_data, 'Price_PT')
     energy_cost.setMasterPrices(data_ingest.master_prices_table)
 
-    #### testing
-    start_date  = datetime.datetime( 2023, 2, 21, 0,0,0)
-    end_date    = datetime.datetime( 2023, 3, 20, 23, 59, 59)
+    #### init testing
+
+    #start_date  = datetime.datetime( 2023, 1, 1, 0,0,0)
+    #end_date    = datetime.datetime( 2023, 2, 1, 23, 59, 59)
+    
+    ## download files from 01-01-2023 to 01-02-2023
+    #dates = generate_dates_period (start_date, end_date)
+    #for req_date in dates:
+    #    app.logger.info ('Downloading OMIE data for date: ' + str(req_date) )
+    #    data_ingest.download_OMIE_data(req_date)    
+
+
 
 
 ################### MAIN ############################
@@ -192,7 +216,7 @@ initialize_app()
 def refresh_omie_data():
     # test with:
     # curl -X GET "http://127.0.0.1:5000/refreshOMIE?try_download=True"
-    app.logger.info ("Service: refresh_omie_data")
+    app.logger.info ("Service: refresh_omie_data - Request parameters: " + str(request.args.to_dict()))
 
     try_download = request.args.get('try_download')
     if try_download or try_download == 'True':
@@ -211,31 +235,38 @@ def refresh_omie_data():
 
 @app.route('/downloadOMIE', methods=['GET'])
 def download_omie_data():
-    # test with:
     # curl -X GET "http://127.0.0.1:5000/DownloadOMIE?date=2021-02-23"
-    app.logger.info ("Service: download_omie_data")
+    # curl -X GET "http://127.0.0.1:5000/DownloadOMIE?filename=data.csv"
+    # curl -X GET "http://127.0.0.1:5000/DownloadOMIE?filename=data.csv&overwrite_name=new_name.csv"
+    app.logger.info("Service: download_omie_data  - Request parameters: " + str(request.args.to_dict()))
 
     str_date = request.args.get('date')
-    if not str_date:
+    filename = request.args.get('filename')
+    overwrite_name = request.args.get('overwrite_name')
+
+    if not str_date and not filename:
         app.logger.error('download_omie_data: Invalid request data')
         return jsonify({'error': 'Invalid request data'}), 400
 
-    date = datetime.datetime.strptime(str_date, '%Y-%m-%d')
-    status = data_ingest.download_OMIE_data(date)
-    
+    if str_date:
+        date = datetime.datetime.strptime(str_date, '%Y-%m-%d')
+        status = data_ingest.download_OMIE_data(date=date, mode=0)
+    elif filename:
+        status = data_ingest.download_OMIE_data(filename=filename, overwrite_name=overwrite_name, mode=1)
+
     if status['saved'] == True:
         status['message'] = 'OMIE data updated successfully'
     else:
         status['message'] = 'OMIE data not updated'    
-    
-    app.logger.info ("Service Done - downloadOMIE")
-    return jsonify( status ), 200
+
+    app.logger.info("Service Done - downloadOMIE")
+    return jsonify(status), 200
 
 @app.route('/uploadEnergyFile', methods=['POST'])
 def upload_energy_file():
     # Test with:
     # curl -X POST -F "file=@./ERedes_PT166184330_Fev23.xlsx"  "http://127.0.0.1:5000/uploadEnergyFile?supplier=coopernico-base&tariff=Tri-Horario-Semanal&year=2023&cycle_day=1&format=json&provider=E-Redes"
-    app.logger.info ("Service: upload_energy_file")
+    app.logger.info ("Service: upload_energy_file - Request parameters: " + str(request.args.to_dict()) )
 
     str_supplier = request.args.get('supplier')
     if (str_supplier not in Energy_Suppliers):
@@ -295,6 +326,14 @@ def upload_energy_file():
     else:
         divisionFactor = int(arg_divisionfactor)
 
+    arg_dataType = request.args.get('datatype')
+    if (arg_dataType is None) or (arg_dataType == '') :
+        datatype = 'cr'
+    elif (arg_dataType is not None) and (not arg_dataType in {'cr','cm'} ) :
+        app.logger.error ("upload_energy_file: Invalid data type" + str (arg_dataType) )
+        return jsonify({'error': 'Invalid data type'}), 400
+    else:
+        datatype = arg_dataType
 
     # check if the post request has the file part
     if 'file' not in request.files:
@@ -324,7 +363,7 @@ def upload_energy_file():
     contagens = ''
     if (str_provider == 'E-Redes'):
         # Load the file into a DataFrame
-        dfConsumo, contagens = data_ingest.load_ERedes_Consumption_data (filepath, arg_sampling)
+        dfConsumo, contagens = data_ingest.load_ERedes_Consumption_data (filepath, arg_sampling, datatype)
         divisionFactor = 4 if divisionFactor == 0 else divisionFactor
     elif (str_provider == 'EoT'):
         # Load the file into a DataFrame
@@ -377,7 +416,7 @@ def upload_energy_file():
 def get_price_for_date():
     # test with:
     # curl -X GET "http://127.0.0.1:5000/getPriceForDate?supplier=Coopernico&tariff=Tri-Horario-Semanal&year=2023&date=2023-03-23-12:00&cycle_day=1"
-    app.logger.info ("Service: getPriceForDate")
+    app.logger.info ("Service: getPriceForDate - Request parameters: " + str(request.args.to_dict()))
 
     str_supplier = request.args.get('supplier')
     if (str_supplier not in Energy_Suppliers):
@@ -446,7 +485,7 @@ def get_price_for_date():
 def get_current_price():
     # test with:
     # curl -X GET "http://127.0.0.1:5000/getCurrentPrice?supplier=coopernico-base&tariff=Tri-Horario-Semanal&year=2023&cycle_day=1"
-    app.logger.info ("Service: getCurrentPrice")
+    app.logger.info ("Service: getCurrentPrice - Request parameters: " + str(request.args.to_dict()))
 
     str_supplier = request.args.get('supplier')
     if (str_supplier not in Energy_Suppliers):
@@ -523,7 +562,7 @@ def get_current_price():
 def getOMIEPricesForPeriod ():
     # test with:
     # curl -X GET "http://127.0.0.1:5000/getOMIEPricesForPeriod?supplier=coopernico-base&tariff=Simples&year=2023&cycle_day=1&supplier=coopernico-base&start_date=2023-02-23-00:00&end_date=2023-02-24-00:00"
-    app.logger.info ("Service: getOMIEPricesForPeriod")
+    app.logger.info ("Service: getOMIEPricesForPeriod - Request parameters: " + str(request.args.to_dict()))
 
     str_supplier = request.args.get('supplier')
     if (str_supplier not in Energy_Suppliers):
@@ -614,7 +653,7 @@ def getOMIEPricesForPeriod ():
 def estimate_profile_cost():
     # test with:
     # curl -X GET "http://127.0.0.1:5000/getEstimationProfile?tariff=Tri-Horario-Semanal&year=2023&cycle_day=1&supplier=coopernico-base&start_date=2023-02-23-00:00&end_date=2023-02-24-00:00&total_energy=655.32"
-    app.logger.info ("Service: getEstimationProfile")
+    app.logger.info ("Service: getEstimationProfile - Request parameters: " + str(request.args.to_dict()))
 
     str_supplier = request.args.get('supplier')
     if (str_supplier not in Energy_Suppliers):
@@ -710,7 +749,7 @@ def estimate_profile_cost():
 def estimate_profile_cost_manual():
     # test with:
     # curl -X GET "http://127.0.0.1:5000/getEstimationProfile?tariff=Tri-Horario-Semanal&year=2023&start_date=2023-02-23-00:00&end_date=2023-02-24-00:00&total_vazio=155.32&total_cheio=155.32&total_ponta=155.32&cycle_day=1&supplier=coopernico-base"
-    app.logger.info ("Service: getEstimationProfileManual")
+    app.logger.info ("Service: getEstimationProfileManual - Request parameters: " + str(request.args.to_dict()))
 
     str_supplier = request.args.get('supplier')
     if (str_supplier not in Energy_Suppliers):
@@ -804,6 +843,7 @@ def estimate_profile_cost_manual():
     if ("coopernico" in str_supplier):
         response = energy_cost.calc_coopernico_costs (start_date, end_date, total_vazio, total_cheio, total_ponta, laghour, records)
     elif ("luzboa" in str_supplier):
+        #start_date, end_date = energy_cost.get_current_cycle_period( cycle_day)
         response = energy_cost.calc_luzboa_costs (start_date, end_date, total_vazio, total_cheio, total_ponta, laghour, records)
     else:
         app.logger.error("Invalid Energy Supplier")
@@ -831,7 +871,7 @@ def estimate_profile_cost_manual():
 def get_eot_data ():
     # test with:
     # curl -X GET "http://127.0.0.1:5000/getEOTData?tariff=Tri-Horario-Semanal&year=2023?key=XXXXXXXXX&cycle_day=1&supplier=coopernico-base"
-    app.logger.info ("Start Service: getEOTData")
+    app.logger.info ("Start Service: getEOTData - Request parameters: " + str(request.args.to_dict()) )
 
     str_supplier = request.args.get('supplier')
     if (str_supplier not in Energy_Suppliers):
@@ -942,7 +982,7 @@ def get_eot_data ():
 def getProfilePeriod():
     # test with:
     # curl -X GET "http://127.0.0.1:5000/getProfilePeriod?tariff=Tri-Horario-Semanal&year=2023&start_date=2023-02-23-00:00&end_date=2023-02-24-00:00&cycle_day=1&supplier=coopernico-base"
-    app.logger.info ("Service: getProfilePeriod")
+    app.logger.info ("Service: getProfilePeriod - Request parameters: " + str(request.args.to_dict()))
 
     str_supplier = request.args.get('supplier')
     if (str_supplier not in Energy_Suppliers):

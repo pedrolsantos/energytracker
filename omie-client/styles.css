@@ -81,6 +81,9 @@ main {
     height: 800px ;
 }
 
+.smaller-font {
+    font-size: 0.90rem; 
+}
 
 footer {
     background-color: #f1f1f1;

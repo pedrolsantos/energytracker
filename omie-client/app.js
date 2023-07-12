@@ -69,7 +69,7 @@ class ApiService {
         }
     }      
 
-    async uploadEnergyFile(format, provider, file) {
+    async uploadEnergyFile(format, provider, file, consumptionType) {
         const supplier = CONFIG.supplier;
         const tariff = CONFIG.tariff;
         const year = CONFIG.year;
@@ -79,7 +79,7 @@ class ApiService {
         const divisor = (CONFIG.divisor != 0) ? CONFIG.divisor: '';
         const lagHour = 0;
 
-        const url = `${this.baseUrl}/uploadEnergyFile?supplier=${supplier}&tariff=${tariff}&year=${year}&cycle_day=${cycle_day}&profile=${profile}&format=${format}&provider=${provider}&resampling=${resample}&divisor=${divisor}&lagHour=${lagHour}`;
+        const url = `${this.baseUrl}/uploadEnergyFile?supplier=${supplier}&tariff=${tariff}&year=${year}&cycle_day=${cycle_day}&profile=${profile}&format=${format}&provider=${provider}&resampling=${resample}&divisor=${divisor}&lagHour=${lagHour}&datatype=${consumptionType}`;
     
         const formData = new FormData();
         formData.append('file', file);
@@ -341,7 +341,7 @@ class PriceTracker {
         const isLuzboa = (supplier === 'luzboa-spot') ? true : false;
 
         if (isLuzboa) {
-            document.getElementById('title_profile').textContent = "Cálculo do Consumo :"
+            document.getElementById('title_profile').textContent = "Cálculo do Consumo (Período) :"
             document.getElementById('analysis-periodo-start').value = this.formatDate(start_date, true)
             document.getElementById('analysis-periodo-end').value = this.formatDate(end_date, true);            
         }
@@ -350,13 +350,26 @@ class PriceTracker {
         }
 
         // Constrol elements according to supplier
-        document.getElementById('blockFileProvider').style.display = (isLuzboa)? 'none' : ''
-        document.getElementById('blockConsumoEstimado').style.display = (isLuzboa)? 'none' : ''
-        document.getElementById('blockChart').style.display = (isLuzboa)? 'none' : ''
+        const hide_tag = '' // 'none'
+        document.getElementById('blockFileProvider').style.display = (isLuzboa)? hide_tag : ''
+        document.getElementById('blockConsumoEstimado').style.display = (isLuzboa)? hide_tag : ''
+        document.getElementById('blockChart').style.display = (isLuzboa)? hide_tag : ''
         document.getElementById('analysis-periodo-start').disabled = (isLuzboa)? false : true;
         document.getElementById('analysis-periodo-end').disabled = (isLuzboa)? false : true;
+        
+        
+        var blockSWelement = document.getElementById('blockSwitchChart');
+        if (isLuzboa) {
+            blockSWelement.classList.remove('d-flex'); // This will hide the element by removing the 'd-flex' class
+            blockSWelement.style.display = 'none'
+        } else {
+            blockSWelement.classList.add('d-flex'); // This will show the element by adding the 'd-flex' class
+            blockSWelement.style.display = 'flex'
+        }
+        //document.getElementById('blockSwitchChart').style.display = (isLuzboa)? 'none' : 'flex'
 
-    
+
+
 
         // Clear analysis data
         document.getElementById('analysis-energia-profile-vazio-total').textContent = '0.00 kWh (0.00 €)';
@@ -1055,7 +1068,7 @@ class PriceTracker {
             }
             
             if (CONFIG.supplier == "luzboa-spot") {
-                document.getElementById('title_profile').textContent = "Cálculo do Consumo :"
+                document.getElementById('title_profile').textContent = "Cálculo do Consumo (Período) :"
             }
             else{
                 document.getElementById('title_profile').textContent = "Curva Perfil " + CONFIG.profile
@@ -1213,7 +1226,6 @@ document.addEventListener('DOMContentLoaded', () => {
     
     document.getElementById("btn-resample-15m").addEventListener("click", function() {
         sample = '';
-        
         if (file) {
             uploadFile (file)
         }        
@@ -1367,7 +1379,7 @@ function handleSwitchChange_Chart(event){
         if (priceTrackerApp.lastEstimateDataFetch == null) {
             // No data to process
             return;
-        }    
+        }
         // Show the chart using the Estimate Energy Data
         priceTrackerApp.isRealConsumption = false
         priceTrackerApp.loadDataOnAnalysisChart (priceChartAnalysis, priceTrackerApp.lastEstimateDataFetch); // lastEstimateDataDisplay);  //.lastEstimateDataFetch);
@@ -1415,11 +1427,11 @@ function handleAnaliseRefreshContador (event){
 
             const period = { minDate: dtp_start, maxDate: dtp_end }
 
-            var inputVazio = ( document.getElementById('analysis-contador-vazio').value );
-            var inputCheio = ( document.getElementById('analysis-contador-cheio').value );
-            var inputPonta = ( document.getElementById('analysis-contador-ponta').value ) ;
+            var inputVazio = ( document.getElementById('analysis-contador-vazio').value.replace(/,/g, '.') );
+            var inputCheio = ( document.getElementById('analysis-contador-cheio').value.replace(/,/g, '.') );
+            var inputPonta = ( document.getElementById('analysis-contador-ponta').value.replace(/,/g, '.') ) ;
 
-            document.getElementById('title_profile').textContent = "Cálculo do Consumo :" + " ..... Em Processamento ...."
+            document.getElementById('title_profile').textContent = "Cálculo do Consumo (Período) :" + " ..... Em Processamento ...."
             priceTrackerApp.fetchProfileDataBasedOnManual(period, inputVazio, inputCheio, inputPonta,)
         }
 
@@ -1473,14 +1485,14 @@ async function uploadFile (file){
             document.getElementById('title_consumo_real').textContent = "Consumo Real : ..... Em Processamento ....";
             showAlert('Aguarde enquanto os dados são processados...');
 
+            const consumptionType = document.getElementById("consumo-tipo").value.trim();
             const provider = document.getElementById("analisys-provider").innerHTML.trim();
-            logger('File selected:', file.name, 'Provider:', provider);
+            logger('File selected:', file.name, 'Provider:', provider, 'ColumnType:', consumptionType);
 
-            const response = await apiService.uploadEnergyFile('json', provider, file);
+            const response = await apiService.uploadEnergyFile('json', provider, file, consumptionType);
             logger('UploadEnergyFile: File uploaded successfully:', response);
 
             // Turn all switchs On
-            // document.getElementById('switch-dados-perfil-c').checked = false;
             document.getElementById('switch-chart').checked = true;
 
             // fill the input controls of Vazio, Cheio and Ponta

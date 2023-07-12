@@ -186,6 +186,14 @@
                                                         <label for="consumo-browse-file" class="" id="labelFicheiroConsumo" style="color: dodgerblue;">Ficheiro de Consumo: </label>
                                                         <input class="form-control form-control-sm" id="consumo-browse-file" type="file" style="color: dodgerblue;">
                                                     </div>
+                                                    <div class="input-group mb-3 smaller-font">
+                                                        <span class="input-group-text smaller-font" id="ConsumoTipoLabel">Tipo Consumo:</span>
+                                                        <select class="form-control form-control-sm smaller-font" id="consumo-tipo" style="color: dodgerblue;" name="Tipo Consumo:" aria-label="ConsumoTipo" aria-describedby="ConsumoTipoLabel" required>
+                                                            <option value="cr" selected>Consumo Registado</option>
+                                                            <option value="cm">Consumo medido na IC</option>
+                                                        </select>
+                                                    </div>
+                            
                                                     <h6 class="d-flex justify-content-between" style="color: lightslategray;" >
                                                         Divisor do Consumo:
                                                         <div class="dropdown shadow-0" style="height: 10px;">
@@ -379,7 +387,7 @@
                                     <div class="col-xl-12 col-lg-12 col-md-12 col-sm-12 col-12">
                                         <div class="container" style="margin-left: 0px;margin-right: 0px; max-width: 100%;">
                                             <div class="row">
-                                                <div class="col-xl-4 col-lg-4 col-md-12 col-sm-12 col-12">
+                                                <div class="col-xl-5 col-lg-4 col-md-4 col-sm-12 col-12">
                                                     <div class="btn-group" role="group" aria-label="Tools" style="margin-right: 55px;">
                                                         <button type="button" id="btn-reset-zoom" class="btn btn-outline-success btn-xs"> # </button>
                                                         <button type="button" id="btn-zoom-in" class="btn btn-outline-success btn-xs"> + </button>
@@ -398,21 +406,20 @@
                                                         <label class="btn btn-outline-primary" for="btn-resample-1w">1W</label>
                                                     </div>
                                                 </div>
-                                                <div class="col-xl-4 col-lg-4 col-md-6 col-sm-12 col-12 text-center">
+                                                <div class="col-xl-3 col-lg-4 col-md-3 col-sm-12 col-12 text-center">
                                                     <!-- Label com o Periodo do Slider -->
                                                     <h6 class="d-flex justify-content-center text-center" style="color: silver;">
                                                         <span id="analysis-slider-periodo" class="text-center" style="color: silver;"></span>
                                                     </h6>
 
                                                 </div>
-                                                <div class="col-xl-4 col-lg-4 col-md-6 col-sm-12 col-12 d-flex justify-content-end" style="color: lightslategray;"> 
+                                                <div id='blockSwitchChart' class="col-xl-4 col-lg-4 col-md-5 col-sm-12 col-12 d-flex justify-content-end" style="color: lightslategray;" > 
                                                     <label for="switch-chart" class="me-2">Consumo Estimado</label>
                                                     <div class="form-check form-switch" style="color: lightslategray;">
                                                         <input class="form-check-input" type="checkbox" id="switch-chart">
                                                     </div>
                                                     <label for="switch-chart" class="ms-2">Consumo Real</label>
                                                 </div>
-
                                             </div>
                                             <div class="card card-body mb-3" >
                                                 <!-- Slider  -->
