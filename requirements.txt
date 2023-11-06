@@ -12,3 +12,4 @@ gunicorn
 schedule==1.1.0
 supervisor
 pyarrow
+Werkzeug==2.2.2

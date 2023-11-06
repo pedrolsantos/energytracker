@@ -27,11 +27,11 @@ if os.path.exists(omie_data_path):
 else:
     BASE_PATH = os.path.dirname(currentDir.rstrip('/'))
 
-OMIE_PATH       = os.path.join(BASE_PATH, 'OMIE_Data/')
-CONSUMOS_PATH   = os.path.join(BASE_PATH, 'Consumos/')
-EREDES_PATH     = os.path.join(BASE_PATH, 'ERedes_profiles/')
-GLOBAL_PROFILE_FILE = os.path.join(EREDES_PATH, 'ERSE_perfis_de_consumo_2023_especial.xlsx')
-LOSS_PROFILE_FILE   = os.path.join(EREDES_PATH, 'E-REDES_Perfil_Perdas_2023_mod.xlsx')
+OMIE_PATH           = os.path.join(BASE_PATH,   'OMIE_Data/')
+CONSUMOS_PATH       = os.path.join(BASE_PATH,   'Consumos/')
+EREDES_PATH         = os.path.join(BASE_PATH,   'ERedes_profiles/')
+GLOBAL_PROFILE_FILE = os.path.join(EREDES_PATH, 'ERSE_perfis_de_consumo_2023_novembro.xlsx')
+LOSS_PROFILE_FILE   = os.path.join(EREDES_PATH, 'E-REDES_Perfil_Perdas_2023_novembro.xlsx')
 
 ###################  FLASK INIT  ############################
 # Configure caching
@@ -187,7 +187,7 @@ def initialize_app():
     check_and_download_OMIE ()
 
     # Calc the Master Prices Table
-    energy_cost = EnergyCosts('Tri-Horario-Semanal', 2023, 'luzboa-spot', 1, 'BTN-C' )
+    energy_cost = EnergyCosts('Bi-Horario-Semanal', 2023, 'coopernico-base', 1, 'BTN-C' )
     data_ingest.master_prices_table = energy_cost.calc_master_table (data_ingest.profile_data, data_ingest.profile_loss_data, data_ingest.omie_data, 'Price_PT')
     energy_cost.setMasterPrices(data_ingest.master_prices_table)
 
@@ -515,7 +515,7 @@ def get_current_price():
     # arg_profile = arg_profile.replace('-', ' ')
 
     arg_lagHour = request.args.get('lagHour')
-    laghour = 1
+    laghour = 0
     if (arg_lagHour)  :
         laghour = int(arg_lagHour)
 
@@ -625,7 +625,7 @@ def getOMIEPricesForPeriod ():
         return jsonify({'error': 'Invalid date range on OMIE data'}), 400
     
     arg_lagHour = request.args.get('lagHour')
-    laghour = 1
+    laghour = 0
     if (arg_lagHour)  :
         laghour = int(arg_lagHour)
 

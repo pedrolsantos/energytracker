@@ -135,8 +135,8 @@ class DataIngestion():
             if csv_file.endswith('.1'):
                 filename = os.path.join(folder, csv_file)
                 # Read the CSV file into a temporary DataFrame
+                
                 # Convert the Hour column to integer and subtract 1 hour to get the correct hour in PT
-
                 df = pd.read_csv(filename, delimiter=';', names= csv_columns, skiprows=[0], skipfooter=1, engine='python', index_col=False, dtype=dtypes, converters={'Hour': lambda x: int(x)-1} )
                 # print ( f'\t{count} - File ´{filename}´ processed with {str(len(df.index)) } rows')
 
@@ -145,7 +145,7 @@ class DataIngestion():
                 count+=1
 
         # Define new index column as concatenation of Year, Month, Day, and Hour columns
-        all_data['Date'] = pd.to_datetime(all_data['Year'].astype(str) +'-'+ all_data['Month'].astype(str) +'-'+ all_data['Day'].astype(str) +'-'+ all_data['Hour'].astype(str)+':00', format='%Y-%m-%d-%H:%M')
+        all_data['Date'] = pd.to_datetime(all_data['Year'].astype(str) +'-'+ all_data['Month'].astype(str) +'-'+ all_data['Day'].astype(str) +'-'+ all_data['Hour'].astype(str)+':00', errors='coerce', format='%Y-%m-%d-%H:%M')
 
         # Set the new index column and drop the original Year, Month, Day, and Hour columns
         all_data.set_index('Date', inplace=True)
@@ -296,6 +296,12 @@ class DataIngestion():
         df = df.sort_index()
 
         return df
+        
+    def hourMinuteToHHMMSSFormatCondition (self, hourMinute):
+        if hourMinute == '24:00':
+            return '00:00:00'
+        else:
+            return hourMinute + ':00'
     
     def load_EREDES_ConsumptionProfiles (self, filename):
         # Load the E-Redes Consumption Profiles
@@ -308,7 +314,7 @@ class DataIngestion():
         df[['BTN A', 'BTN B', 'BTN C', 'IP']] = df[['BTN A', 'BTN B', 'BTN C', 'IP']].apply(pd.to_numeric)
 
         # Convert the 'Hora' column to the 'hh:mm:ss' format
-        df['Hora'] = pd.to_timedelta( df['Hora'].apply(lambda x: x + ':00' if len(x) == 5 else '00:00:00' if x== '24:00' else x) )
+        df['Hora'] = pd.to_timedelta( df['Hora'].apply(self.hourMinuteToHHMMSSFormatCondition) )
 
         # Subtract 15 minutes from each value in the 'Hora' column
         df['Hora'] = df['Hora'] - pd.to_timedelta('00:15:00')
@@ -346,7 +352,7 @@ class DataIngestion():
         df[['RESP', 'BTN-A', 'BTN-B', 'BTN-C', 'IP', 'mP', 'UPAC-A-CV-Consumo', 'UPAC-A-CV-Injecao', 'UPAC-B-CV-Consumo', 'UPAC-B-CV-Injecao', 'UPAC-C-CV-Consumo', 'UPAC-C-CV-Injecao', 'UPAC-A-Consumo', 'UPAC-B-Consumo', 'UPAC-C-Consumo']] = df[['RESP', 'BTN-A', 'BTN-B', 'BTN-C', 'IP', 'mP', 'UPAC-A-CV-Consumo', 'UPAC-A-CV-Injecao', 'UPAC-B-CV-Consumo', 'UPAC-B-CV-Injecao', 'UPAC-C-CV-Consumo', 'UPAC-C-CV-Injecao', 'UPAC-A-Consumo', 'UPAC-B-Consumo', 'UPAC-C-Consumo']].apply(pd.to_numeric)
 
         # Convert the 'Hora' column to the 'hh:mm:ss' format
-        df['Hora'] = pd.to_timedelta( df['Hora'].apply(lambda x: x + ':00' if len(x) == 5 else '00:00:00' if x== '24:00' else x) )
+        df['Hora'] = pd.to_timedelta( df['Hora'].apply(self.hourMinuteToHHMMSSFormatCondition) )
 
         # Subtract 15 minutes from each value in the 'Hora' column
         df['Hora'] = df['Hora'] - pd.to_timedelta('00:15:00')
@@ -378,14 +384,14 @@ class DataIngestion():
 
         # Load the E-Redes Loss Profile if the Feather file does not exist
         self.logger.info (f'Loading E-Redes Losses Profile file= {filename}')
-        df = pd.read_excel(filename, sheet_name='Perfis Perdas', skiprows=4, header=None)
+        df = pd.read_excel(filename, sheet_name='Perfis Perdas 2023', skiprows=3, header=None)
         df.columns = ['Data', 'Dia', 'Hora', 'BT', 'MT', 'AT', 'ATRNT', 'MAT']
 
         # Convert the columns to numeric values
         df[['BT', 'MT', 'AT', 'ATRNT', 'MAT']] = df[['BT', 'MT', 'AT', 'ATRNT', 'MAT']].apply(pd.to_numeric)
 
         # Convert the 'Hora' column to the 'hh:mm:ss' format
-        df['Hora'] = pd.to_timedelta( df['Hora'].apply(lambda x: x + ':00' if len(x) == 5 else '00:00:00' if x== '24:00' else x) )
+        df['Hora'] = pd.to_timedelta( df['Hora'].apply(self.hourMinuteToHHMMSSFormatCondition) )
 
         # Subtract 15 minutes from each value in the 'Hora' column
         df['Hora'] = df['Hora'] - pd.to_timedelta('00:15:00')

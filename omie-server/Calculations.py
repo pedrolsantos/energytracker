@@ -237,11 +237,11 @@ class EnergyCosts():
 
         return start_date, end_date
 
-    def get_omie_price_for_date (self, dataframe, str_time, price_field='Price_PT', lagHour=1):
+    def get_omie_price_for_date (self, dataframe, str_time, price_field='Price_PT', lagHour=0):
         target_time = pd.to_datetime(str_time)
 
         # hack to account for lag in the OMIE data being in ES timeframe
-        if (lagHour > 0):
+        if (lagHour != 0):
             target_time= target_time + pd.Timedelta(hours=lagHour)
 
         # Filter the DataFrame for rows with index values less than the target time
@@ -382,7 +382,7 @@ class EnergyCosts():
         start_date, end_date = self.get_current_cycle_period(self.cycle_day)
         self.luzboa_prices = self.get_luzboa_average_prices (start_date, end_date)
 
-    def calc_energy_price (self, date, energy_consumption, omie_data, loss_profile_data, lagHour=1, price_field='Price_PT', divisionFactor=1):
+    def calc_energy_price (self, date, energy_consumption, omie_data, loss_profile_data, lagHour=0, price_field='Price_PT', divisionFactor=1):
         # Check if the energy consumption is NaN
         if (math.isnan(energy_consumption)):
             return 0, {}
@@ -437,19 +437,19 @@ class EnergyCosts():
     def calc_master_table (self, profile_table, loss_profile_table, omie_table, omie_column='Price_PT'  ):
         # Get the start and end date of the Omie data we have
         start_date = omie_table.index.min() 
-        end_date = omie_table.index.max() 
+        end_date = omie_table.index.max() + datetime.timedelta(minutes=59)
 
         self.logger.info ("Calculate MASTER Price Table for the period: {} - {}".format(start_date, end_date))
 
         # Select the consumption profile data for the period
-        master_table = profile_table.loc[start_date:end_date].copy ()
+        master_table = profile_table.loc[start_date:end_date].copy()
 
         ##### Calculate the OMIE Price for each row
         # Filter the OMIE data for the period
         omie_df = omie_table.loc[start_date:end_date][omie_column].copy()
         
         # add -1 hour
-        omie_df.index = omie_df.index - pd.Timedelta(hours=1) # 1
+        # omie_df.index = omie_df.index - pd.Timedelta(hours=1) # 1
 
         # Resample omie_data to match the 15-min intervals of master_table and convert to kWh
         omie_data_resampled = omie_df.resample('15min').ffill() / 1000.0
@@ -469,7 +469,7 @@ class EnergyCosts():
 
         return master_table
 
-    def get_luzboa_average_prices (self, start_date, end_date, lagHour=1):
+    def get_luzboa_average_prices (self, start_date, end_date, lagHour=0):
         # Convert the dates to datetime
         start_date = pd.to_datetime(start_date) - datetime.timedelta(hours=lagHour) #LuzBoa is not using PT time
         end_date = pd.to_datetime(end_date) - datetime.timedelta(hours=lagHour)
@@ -556,14 +556,16 @@ class EnergyCosts():
         filtered_energy_data = None 
         if energy_data is None:
             # add lagHour to the start_date and end_date
-            start_date = start_date + datetime.timedelta(hours=lagHour)
-            end_date = end_date + datetime.timedelta(hours=lagHour)
+            if (lagHour != 0):
+                start_date = start_date + datetime.timedelta(hours=lagHour)
+                end_date = end_date + datetime.timedelta(hours=lagHour)
 
             # Create a new DataFrame with the same index as omie_data between start_date and end_date
             filtered_energy_data = omie_data.loc[start_date:end_date].copy()
 
             # Take 1 hour to the index datetime becasue of CEST timeframe of OMIE data
-            filtered_energy_data.index = filtered_energy_data.index + pd.Timedelta(hours=-lagHour)
+            if (lagHour != 0):
+                filtered_energy_data.index = filtered_energy_data.index + pd.Timedelta(hours=-lagHour)
 
             # Add the 'Energy' column with a value of 1 for all rows
             filtered_energy_data['Energy'] = 1
@@ -579,7 +581,7 @@ class EnergyCosts():
 
         return filtered_energy_data
 
-    def get_profile_estimation(self, profile_data, omie_data, loss_profile_data, start_date, end_date, total_energy, records='none', lagHour=1):
+    def get_profile_estimation(self, profile_data, omie_data, loss_profile_data, start_date, end_date, total_energy, records='none', lagHour=0):
         total_energy= float (total_energy)
         sum_profile_period = profile_data.loc[start_date:end_date][self.profile].sum()
         energy_profile = profile_data.loc[start_date:end_date][self.profile] * (total_energy / sum_profile_period)
