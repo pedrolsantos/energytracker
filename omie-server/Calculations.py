@@ -193,8 +193,8 @@ class EnergyCosts():
         while dst_start.weekday() != 6:  # 6 represents Sunday
             dst_start -= datetime.timedelta(days=1)
 
-        # Last Sunday of November
-        dst_end = datetime.datetime(year, 11, 30, 2, 0, tzinfo=tz)
+        # Last Sunday of October
+        dst_end = datetime.datetime(year, 10, 30, 2, 0, tzinfo=tz)
         while dst_end.weekday() != 6:  # 6 represents Sunday
             dst_end -= datetime.timedelta(days=1)
 
@@ -315,6 +315,10 @@ class EnergyCosts():
             #self.logger.error("get_loss_profile_for_date: No available data before or on target_time:" + str(target_time))
             return 0, {}
 
+        # Check for non-unique indices and remove duplicates if found
+        if not loss_profile_data.index.is_unique:
+            loss_profile_data = loss_profile_data[~loss_profile_data.index.duplicated(keep='first')]
+            
         last_valid_data = loss_profile_data.loc[last_valid_index]
 
         # Profile formula:  ((1+BT) x (1+MT) x (1+AT) x (1+ATRNT)) -1
@@ -463,8 +467,12 @@ class EnergyCosts():
 
         # Calculate "Total Loss" column
         loss_df['Total_Loss'] = ((1 + loss_df['BT']) * (1 + loss_df['MT']) * (1 + loss_df['AT']) * (1 + loss_df['ATRNT'])) - 1
-
-        # Align the indexes and create the 'Loss' column in the 'Prices Table' DataFrame
+        
+        if (loss_df.index.is_unique == False):
+            # If there's duplicates in the index, consider only the first and remove the others;
+            loss_df = loss_df.reset_index().drop_duplicates(subset='Date', keep='first').set_index('Date')
+        
+        # Align the indexes and create the 'Loss' column in the 'Prices Table' DataFrame        
         master_table['Loss'] = loss_df['Total_Loss'].reindex(master_table.index, method='ffill')
 
         return master_table
