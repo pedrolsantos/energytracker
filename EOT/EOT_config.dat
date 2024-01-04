@@ -1,0 +1,11 @@
+[
+    {
+        "userID": "santinhos",
+        "api_key": "3HJKXL6SYYGFD5VP",
+        "energy_cost_option": "Tri-Horario-Semanal",
+        "energy_supplier": "coopernico-base",
+        "cycle_day": 8,
+        "start_date": "2023-01-01",
+        "end_date": "2025-12-31"
+    }
+]
