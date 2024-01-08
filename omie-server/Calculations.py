@@ -481,9 +481,6 @@ class EnergyCosts():
         }
         return data
 
-    def setMasterPrices (self, master_prices_table):
-        self.master_prices_table = master_prices_table.copy()
-
     def add_columns_energy_by_period (self, row, column_name= 'Energy'):
         date = row.name
         energy = row[column_name]
@@ -784,27 +781,33 @@ class EnergyCosts():
         return differences
     
     ##########
-    def calc_master_table (self, profile_table, loss_profile_table, omie_table, master_file ):
-        # Get the start and end date of the OMIE data we have
+    def setMasterPrices (self, master_prices_table):
+        self.master_prices_table = master_prices_table.copy()
+
+    def calc_master_table (self, profile_table, loss_profile_table, omie_table, master_file, master_table = None ):
+        # Get the start and end date of the OMIE data we currently have
         start_date = omie_table.index.min() 
         end_date = omie_table.index.max()
 
-        # Load existing master_file (if exist)
-        try:
-            master_table = pd.read_feather(master_file)
-            # Convert the 'Date' column to datetime
-            master_table['Date'] = pd.to_datetime(master_table['Date'])
-            # Set the 'Date' column as the index
-            master_table.set_index('Date', inplace=True)
-
-            max_date = master_table.index.max()
-            if end_date <= max_date:
-                self.logger.info("No need to recalculate MASTER Price Table. Existing data is up to date.")
-                return master_table
-            
-        except FileNotFoundError:
-            self.logger.info ("MASTER Price File does NOT Exist....Creating new...")
+        if master_table is None:
+            # Load existing master_file (if exist)
+            try:
+                master_table = pd.read_feather(master_file)
+                # Convert the 'Date' column to datetime
+                master_table['Date'] = pd.to_datetime(master_table['Date'])
+                # Set the 'Date' column as the index
+                master_table.set_index('Date', inplace=True)
+            except FileNotFoundError:
+                self.logger.info ("MASTER Price File does NOT Exist....Creating new...")
     
+        # Check if master_table is up-to-date
+        max_date = master_table.index.max() if master_table is not None else None
+        if max_date is not None and end_date <= max_date:
+            self.logger.info("No need to recalculate MASTER Price Table. Existing data is up to date.")
+            return master_table
+        else:
+            self.logger.info("MASTER Price Table is outdated or does not exist....Recalculating...")
+
         self.logger.info ("Calculate MASTER Price Table for the period: {} - {}".format(start_date, end_date))
 
         # Select the consumption profile data for the period
@@ -852,6 +855,9 @@ class EnergyCosts():
 
         # Save data to Feather file
         master_table.reset_index().to_feather(master_file)
+
+        # set internal object Master Table
+        self.setMasterPrices (master_table)
 
         return master_table
 
@@ -916,6 +922,13 @@ class EnergyCosts():
 
         # Get the Columns of Master Table for the Options on Self
         supplier_column, tar_column, tar_period_column = self.get_master_table_columns_from_options()
+
+        # Check if start_date and end_date are outside of the master_table Date index
+        max_date_master = master_table.index.max()
+        if start_date > max_date_master:
+            start_date = max_date_master - pd.Timedelta(hours=6)
+        if end_date > max_date_master:
+            end_date = max_date_master
 
         # Create a copy DataFrame between start_date and end_date
         sub_data = master_table.loc[start_date:end_date].copy()

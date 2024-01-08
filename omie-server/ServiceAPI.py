@@ -194,10 +194,9 @@ def initialize_app():
     # Calc the Master Prices Table
     energy_cost = EnergyCosts('Tri-Horario-Semanal', 'coopernico-base', 8, 'BTN-C')
     data_ingest.master_prices_table = energy_cost.calc_master_table (data_ingest.profile_data, data_ingest.profile_loss_data, data_ingest.omie_data, MASTER_PRICES_FILE)
-    energy_cost.setMasterPrices(data_ingest.master_prices_table)
 
     # Start polling of EoT Consumption data
-    eot_man.start(30, data_ingest.master_prices_table)
+    eot_man.start(60, data_ingest.master_prices_table)
 
 
     #### Init testing
@@ -364,8 +363,10 @@ def upload_energy_file():
         file.save(filepath)
 
     # Initialize the EnergyCosts class
-    energy_cost = EnergyCosts(str_tarifario, str_supplier, cycle_day, arg_profile)
-    energy_cost.setMasterPrices (data_ingest.master_prices_table)
+    energy_cost = EnergyCosts(str_tarifario, str_supplier, cycle_day, arg_profile )
+    # Check if OMIE data is updated
+    check_and_download_OMIE ()
+    data_ingest.master_prices_table = energy_cost.calc_master_table (data_ingest.profile_data, data_ingest.profile_loss_data, data_ingest.omie_data, MASTER_PRICES_FILE, data_ingest.master_prices_table)
     
     contagens = ''
     if (str_provider == 'E-Redes'):
@@ -455,14 +456,9 @@ def get_current_price():
 
     # Initialize the EnergyCosts class
     energy_cost = EnergyCosts(str_tarifario, str_supplier, cycle_day, arg_profile )
-    energy_cost.setMasterPrices (data_ingest.master_prices_table)
-
     # Check if OMIE data is updated
-    ret = check_and_download_OMIE ()
-    if (ret):
-        # Recalculate the LuzBoa price table
-        data_ingest.master_prices_table = energy_cost.calc_master_table (data_ingest.profile_data, data_ingest.profile_loss_data, data_ingest.omie_data)
-        energy_cost.setMasterPrices (data_ingest.master_prices_table)
+    check_and_download_OMIE ()
+    data_ingest.master_prices_table = energy_cost.calc_master_table (data_ingest.profile_data, data_ingest.profile_loss_data, data_ingest.omie_data, MASTER_PRICES_FILE, data_ingest.master_prices_table)
 
     date = datetime.datetime.now() 
     if date > data_ingest.omie_data.index.max():
@@ -521,14 +517,9 @@ def getOMIEPricesForPeriod ():
 
     # Initialize the EnergyCosts class
     energy_cost = EnergyCosts(str_tarifario, str_supplier, cycle_day, arg_profile )
-    energy_cost.setMasterPrices (data_ingest.master_prices_table)
-
     # Check if OMIE data is updated
-    ret = check_and_download_OMIE ()
-    if (ret):
-        # Recalculate the LuzBoa price table
-        data_ingest.master_prices_table = energy_cost.calc_master_table (data_ingest.profile_data, data_ingest.profile_loss_data, data_ingest.omie_data)
-        energy_cost.setMasterPrices (data_ingest.master_prices_table)
+    check_and_download_OMIE ()
+    data_ingest.master_prices_table = energy_cost.calc_master_table (data_ingest.profile_data, data_ingest.profile_loss_data, data_ingest.omie_data, MASTER_PRICES_FILE, data_ingest.master_prices_table)
 
     start_date = request.args.get('start_date')
     end_date = request.args.get('end_date')
@@ -610,14 +601,9 @@ def estimate_profile_cost():
 
     # Initialize the EnergyCosts class
     energy_cost = EnergyCosts(str_tarifario, str_supplier, cycle_day, arg_profile )
-    energy_cost.setMasterPrices (data_ingest.master_prices_table)
-
     # Check if OMIE data is updated
-    ret = check_and_download_OMIE ()
-    if (ret):
-        # Recalculate the LuzBoa price table
-        data_ingest.master_prices_table = energy_cost.calc_master_table (data_ingest.profile_data, data_ingest.profile_loss_data, data_ingest.omie_data)
-        energy_cost.setMasterPrices (data_ingest.master_prices_table)
+    check_and_download_OMIE ()
+    data_ingest.master_prices_table = energy_cost.calc_master_table (data_ingest.profile_data, data_ingest.profile_loss_data, data_ingest.omie_data, MASTER_PRICES_FILE, data_ingest.master_prices_table)
 
     start_date = request.args.get('start_date')
     end_date = request.args.get('end_date')
@@ -701,14 +687,9 @@ def estimate_profile_cost_manual():
 
     # Initialize the EnergyCosts class
     energy_cost = EnergyCosts(str_tarifario, str_supplier, cycle_day, arg_profile )
-    energy_cost.setMasterPrices (data_ingest.master_prices_table)
-
     # Check if OMIE data is updated
-    ret = check_and_download_OMIE ()
-    if (ret):
-        # Recalculate the LuzBoa price table
-        data_ingest.master_prices_table = energy_cost.calc_master_table (data_ingest.profile_data, data_ingest.profile_loss_data, data_ingest.omie_data)
-        energy_cost.setMasterPrices (data_ingest.master_prices_table)
+    check_and_download_OMIE ()
+    data_ingest.master_prices_table = energy_cost.calc_master_table (data_ingest.profile_data, data_ingest.profile_loss_data, data_ingest.omie_data, MASTER_PRICES_FILE, data_ingest.master_prices_table)
 
     start_date = request.args.get('start_date')
     end_date = request.args.get('end_date')

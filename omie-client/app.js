@@ -3,6 +3,7 @@ var CONFIG = {
                 'api_url': '',  
                 'tariff': 'Tri-Horario-Semanal',    
                 'curva_perfil_c': "True",
+                'posicao_grafico':'meio',
                 'supplier': 'coopernico-base',                  
                 'chart_update_interval': 10,    // 15 minute default
                 'chart_update_period': 23,      // 12 hours default  
@@ -159,9 +160,10 @@ class ApiService {
 
 // Class to manage the APP Functions
 class PriceTracker {
-    constructor(apiService, chartUpdatePeriod) {
+    constructor(apiService, chartUpdatePeriod, chartPosition ='meio') {
         this.apiService = apiService;
         this.chartUpdatePeriod = chartUpdatePeriod;
+        this.chartPosition = chartPosition
         this.lastUpdateChart = new Date();
 
         this.lastRealDataFetch = null;
@@ -506,8 +508,26 @@ class PriceTracker {
         const currentTime = new Date() ;  
         now.setMinutes(0, 0, 0); // Set minutes to 0
 
-        const startDate = new Date(now.getTime() - hours * 60 * 60 * 1000); // 6 hours ago
-        const endDate = new Date(now.getTime() + hours * 60 * 60 * 1000);   // 6 hours from now
+        let hours_from, hours_to;
+        switch(this.chartPosition) {
+            case 'meio':
+                hours_from  = hours * 0.50;
+                hours_to    = hours * 0.50;
+                break;
+            case 'esquerda':
+                hours_from  = hours * 0.10 ;
+                hours_to    = hours * 0.90;
+                break;
+            case 'direita':
+                hours_from  = hours * 0.80;
+                hours_to    = hours * 0.20;
+                break;
+            default:
+                console.error('updateChartPeriod:: Invalid chart position');
+        }
+
+        const startDate = new Date(now.getTime() - hours_from * 60 * 60 * 1000); // 6 hours ago
+        const endDate = new Date(now.getTime() + hours_to * 60 * 60 * 1000);   // 6 hours from now
         logger('Fetching period from:[' + startDate + '] to:[' + endDate + '] date=[' + now + ']');
 
         this.apiService.getOMIEPricesForPeriod( this.formatDate(startDate), this.formatDate(endDate))
@@ -1152,6 +1172,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const config = JSON.parse(savedConfig);
         document.getElementById('config-perfil').value = (config.curva_perfil_c=== undefined)? CONFIG.curva_perfil_c : config.curva_perfil_c;
         document.getElementById('config-hours').value = (config.hours === undefined) ? CONFIG.chart_update_period : config.hours;
+        document.getElementById('config-posicao-grafico').value = (config.posicao_grafico === undefined) ? CONFIG.posicao_grafico : config.posicao_grafico;
         document.getElementById('config-tariff').value = (config.tariff === undefined)? CONFIG.tariff : config.tariff;
         document.getElementById('config-supplier').value = (config.supplier=== undefined)? CONFIG.supplier : config.supplier;
         document.getElementById('config-eot-key').value = (config.configEotKey === undefined) ? CONFIG.EoTKey : config.configEotKey;
@@ -1162,6 +1183,7 @@ document.addEventListener('DOMContentLoaded', () => {
         CONFIG.chart_update_interval = (config.chart_update_interval === undefined) ? CONFIG.chart_update_interval : config.chart_update_interval;
         CONFIG.chart_update_period = (config.hours === undefined) ? CONFIG.chart_update_period : config.hours;
         CONFIG.chart_update_period_net = (config.hours === undefined) ? CONFIG.chart_update_period_net : config.hours;
+        CONFIG.posicao_grafico = (config.posicao_grafico === undefined) ? CONFIG.posicao_grafico : config.posicao_grafico;
         CONFIG.tariff =  (config.tariff === undefined)? CONFIG.tariff : config.tariff;
         CONFIG.supplier = (config.supplier=== undefined)? CONFIG.supplier : config.supplier;
         CONFIG.EoTKey = (config.configEotKey === undefined) ? CONFIG.EoTKey : config.configEotKey;
@@ -1187,9 +1209,9 @@ document.addEventListener('DOMContentLoaded', () => {
         CONFIG.allowDebug = false;
     }
     logger ('Starting the app... ADDRESS:',  CONFIG.api_url );
-    
+
     apiService = new ApiService(CONFIG.api_url);
-    priceTrackerApp = new PriceTracker(apiService, CONFIG.chart_update_period);
+    priceTrackerApp = new PriceTracker(apiService, CONFIG.chart_update_period, CONFIG.posicao_grafico);
     [priceChart, priceChartNet, priceChartAnalysis] = priceTrackerApp.initCharts();    
 
     // Add event listeners to the Analise de Consumo button
@@ -1325,6 +1347,7 @@ function handleStoreConfig (event) {
 
     const hours  = document.getElementById('config-hours').value;
     const curva_perfil_c = document.getElementById('config-perfil').value;
+    const posicao_grafico = document.getElementById('config-posicao-grafico').value;
     const tariff = document.getElementById('config-tariff').value;
     const supplier = document.getElementById('config-supplier').value;
     const configEotKey = document.getElementById('config-eot-key').value;
@@ -1337,6 +1360,7 @@ function handleStoreConfig (event) {
     const config = {
         apiUrl,
         hours,
+        posicao_grafico,
         tariff,
         configEotKey,
         supplier,
@@ -1348,6 +1372,7 @@ function handleStoreConfig (event) {
 
     CONFIG.chart_update_period = hours;
     CONFIG.chart_update_period_net = hours;
+    CONFIG.posicao_grafico = posicao_grafico
     CONFIG.tariff = tariff;
     CONFIG.supplier = supplier;
     CONFIG.EoTKey = configEotKey;
@@ -1359,6 +1384,9 @@ function handleStoreConfig (event) {
     priceTrackerApp.apiService = new ApiService(apiUrl);
     priceTrackerApp.chartUpdatePeriod = hours;
     priceTrackerApp.chartUpdatePeriodNet = hours;
+    priceTrackerApp.chartPosition = posicao_grafico;
+    
+    //priceTrackerApp.chartUpdatePeriodNet = hours;
 
     localStorage.setItem('config', JSON.stringify(config));
     logger('Configuration saved!', CONFIG);
@@ -1369,7 +1397,7 @@ function handleStoreConfig (event) {
     // Configure the Analysis Page according to the Supplier
     priceTrackerApp.setAnalysisPageforSupplier(CONFIG.supplier, CONFIG.tariff)
 
-    // Call the Fetch function to updathe charts
+    // Call the Fetch function to update charts
     priceTrackerApp.fetchServerData( priceChart, priceChartNet, force=true);
 
     const inicioTab = new bootstrap.Tab(document.getElementById('home-tab'));
